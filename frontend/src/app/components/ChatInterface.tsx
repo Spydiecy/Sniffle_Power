@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { IoSendSharp } from 'react-icons/io5';
-import { FaDog, FaUser, FaMicrophone, FaMicrophoneSlash } from 'react-icons/fa';
+import { FaDog, FaUser, FaMicrophone, FaMicrophoneSlash, FaVolumeUp, FaVolumeMute } from 'react-icons/fa';
 import Image from 'next/image';
 import SpeechRecognition, { useSpeechRecognition } from 'react-speech-recognition';
 
@@ -22,6 +22,8 @@ export default function ChatInterface({ fullPage = false, windowMode = false }: 
   const [input, setInput] = useState('');
   const [isConnected, setIsConnected] = useState(true);
   const [isTyping, setIsTyping] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const [speechEnabled, setSpeechEnabled] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -46,11 +48,61 @@ export default function ChatInterface({ fullPage = false, windowMode = false }: 
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message: '__ping__' })
       }).catch(() => {});
+      
+      // Load speech synthesis voices
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.getVoices();
+        // Some browsers need this event to load voices
+        window.speechSynthesis.onvoiceschanged = () => {
+          window.speechSynthesis.getVoices();
+        };
+      }
     }
   }, []);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  // Text-to-speech functionality
+  const speakText = (text: string) => {
+    if (!speechEnabled || !('speechSynthesis' in window)) return;
+    
+    // Stop any current speech
+    window.speechSynthesis.cancel();
+    
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.rate = 0.9;
+    utterance.pitch = 1;
+    utterance.volume = 1;
+    
+    // Find a natural-sounding voice (prefer female voices for AI assistant)
+    const voices = window.speechSynthesis.getVoices();
+    const preferredVoice = voices.find(voice => 
+      voice.name.includes('Google') || 
+      voice.name.includes('Microsoft') ||
+      voice.name.includes('Alex') ||
+      voice.name.includes('Samantha') ||
+      (voice.lang.includes('en') && voice.name.includes('Female'))
+    ) || voices.find(voice => voice.lang.includes('en')) || voices[0];
+    
+    if (preferredVoice) {
+      utterance.voice = preferredVoice;
+    }
+    
+    utterance.onstart = () => setIsSpeaking(true);
+    utterance.onend = () => setIsSpeaking(false);
+    utterance.onerror = () => setIsSpeaking(false);
+    
+    window.speechSynthesis.speak(utterance);
+  };
+
+  const toggleSpeech = () => {
+    if (isSpeaking) {
+      window.speechSynthesis.cancel();
+      setIsSpeaking(false);
+    }
+    setSpeechEnabled(!speechEnabled);
   };
 
   // Update input when transcript changes
@@ -89,6 +141,12 @@ export default function ChatInterface({ fullPage = false, windowMode = false }: 
           timestamp: new Date()
         }
       ]);
+      
+      // Automatically speak the AI response if speech is enabled
+      if (speechEnabled && assistantMsg && !assistantMsg.startsWith('Error:')) {
+        // Small delay to ensure message is rendered
+        setTimeout(() => speakText(assistantMsg), 500);
+      }
     } catch (error: any) {
       setMessages(prev => [...prev, {
         type: 'assistant',
@@ -146,22 +204,103 @@ export default function ChatInterface({ fullPage = false, windowMode = false }: 
 
   return (
     <div className={`flex flex-col ${containerHeight} max-w-4xl mx-auto rounded-xl shadow-xl overflow-hidden border border-sniffle-brown/20 bg-white`}>
-      {!fullPage && !windowMode && (
-        <div className="bg-sniffle-dark text-white p-4 flex items-center">
-          <div className="flex-shrink-0 mr-3">
-            <Image 
-              src="/trendpup-logo.png" 
-              alt="Sniffle Logo" 
-              width={32} 
-              height={32}
-            />
+      {/* Header for all modes */}
+      {!fullPage && !windowMode ? (
+        <div className="bg-sniffle-dark text-white p-4 flex items-center justify-between">
+          <div className="flex items-center">
+            <div className="flex-shrink-0 mr-3">
+              <Image 
+                src="/trendpup-logo.png" 
+                alt="Sniffle Logo" 
+                width={32} 
+                height={32}
+              />
+            </div>
+            <div>
+              <h1 className="text-xl font-semibold">Sniffle Assistant</h1>
+              <p className="text-sm opacity-75">
+                Connected to Sniffle Agent - Ready to chat
+              </p>
+            </div>
           </div>
-          <div>
-            <h1 className="text-xl font-semibold">Sniffle Assistant</h1>
-            <p className="text-sm opacity-75">
-              Connected to Sniffle Agent - Ready to chat
-            </p>
+          
+          {/* Speaker Control Button */}
+          <button
+            onClick={toggleSpeech}
+            className={`p-2 rounded-lg transition-colors ${
+              speechEnabled
+                ? isSpeaking 
+                  ? 'bg-orange-500 hover:bg-orange-600 text-white animate-pulse'
+                  : 'bg-green-500 hover:bg-green-600 text-white'
+                : 'bg-gray-500 hover:bg-gray-600 text-white'
+            }`}
+            title={
+              isSpeaking 
+                ? 'Speaking... Click to stop'
+                : speechEnabled 
+                ? 'AI Speech Enabled - Click to disable' 
+                : 'AI Speech Disabled - Click to enable'
+            }
+          >
+            {speechEnabled ? (
+              isSpeaking ? (
+                <FaVolumeUp className="text-lg animate-pulse" />
+              ) : (
+                <FaVolumeUp className="text-lg" />
+              )
+            ) : (
+              <FaVolumeMute className="text-lg" />
+            )}
+          </button>
+        </div>
+      ) : (
+        /* Header for fullPage or windowMode */
+        <div className="bg-sniffle-dark text-white p-4 flex items-center justify-between">
+          <div className="flex items-center">
+            <div className="flex-shrink-0 mr-3">
+              <Image 
+                src="/trendpup-logo.png" 
+                alt="Sniffle Logo" 
+                width={32} 
+                height={32}
+              />
+            </div>
+            <div>
+              <h1 className="text-xl font-semibold">Sniffle Assistant</h1>
+              <p className="text-sm opacity-75">
+                {fullPage ? 'Full Page Chat Mode' : 'AI Chat Window'} - Ready to chat
+              </p>
+            </div>
           </div>
+          
+          {/* Speaker Control Button */}
+          <button
+            onClick={toggleSpeech}
+            className={`p-2 rounded-lg transition-colors ${
+              speechEnabled
+                ? isSpeaking 
+                  ? 'bg-orange-500 hover:bg-orange-600 text-white animate-pulse'
+                  : 'bg-green-500 hover:bg-green-600 text-white'
+                : 'bg-gray-500 hover:bg-gray-600 text-white'
+            }`}
+            title={
+              isSpeaking 
+                ? 'Speaking... Click to stop'
+                : speechEnabled 
+                ? 'AI Speech Enabled - Click to disable' 
+                : 'AI Speech Disabled - Click to enable'
+            }
+          >
+            {speechEnabled ? (
+              isSpeaking ? (
+                <FaVolumeUp className="text-lg animate-pulse" />
+              ) : (
+                <FaVolumeUp className="text-lg" />
+              )
+            ) : (
+              <FaVolumeMute className="text-lg" />
+            )}
+          </button>
         </div>
       )}
 
@@ -289,6 +428,19 @@ export default function ChatInterface({ fullPage = false, windowMode = false }: 
         {!browserSupportsSpeechRecognition && (
           <div className="mt-2 text-center text-xs text-amber-600">
             ⚠️ Voice input not supported in this browser. Try Chrome, Edge, or Safari for voice features.
+          </div>
+        )}
+        
+        {/* Text-to-speech status */}
+        {speechEnabled && (
+          <div className="mt-2 text-center text-xs text-green-600">
+            🔊 AI Speech Enabled - Responses will be spoken aloud
+          </div>
+        )}
+        
+        {!speechEnabled && 'speechSynthesis' in window && (
+          <div className="mt-2 text-center text-xs text-gray-500">
+            🔇 AI Speech Disabled - Click the speaker button to enable voice responses
           </div>
         )}
       </div>
