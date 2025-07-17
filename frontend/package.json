@@ -4,11 +4,9 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "npm run copy-heartbeat-worker && next build",
-    "copy-heartbeat-worker": "sh ./scripts/copy-heartbeat-worker.sh",
+    "build": "next build",
     "start": "next start -p 3000",
-    "lint": "next lint",
-    "postinstall": "sh ./scripts/patch-heartbeat-worker.sh && patch-package"
+    "lint": "next lint"
   },
   "dependencies": {
     "@metamask/sdk": "^0.33.0",
