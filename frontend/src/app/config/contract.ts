@@ -1,6 +1,7 @@
 // Smart contract configuration
+// ACCESS CONTROL ON HOLD - Contract address will be provided later
 export const ACCESS_FEE_CONTRACT = {
-  address: '0x87C97999e9b6D295A8eAc677d8872F6f86666A2D' as `0x${string}`,
+  address: '0x0000000000000000000000000000000000000000' as `0x${string}`, // Placeholder - will be updated
   abi: [
     {
       "inputs": [],
@@ -75,5 +76,5 @@ export const ACCESS_FEE_CONTRACT = {
   ]
 } as const;
 
-// Fee amount constant (0.2 AVAX in wei)
-export const FEE_AMOUNT = '200000000000000000'; // 0.2 AVAX
+// Fee amount constant (0.2 BNB in wei) - FOR FUTURE USE
+export const FEE_AMOUNT = '200000000000000000'; // 0.2 BNB

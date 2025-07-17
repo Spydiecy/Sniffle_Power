@@ -1,11 +1,11 @@
-# TrendPup Frontend
+# Sniffle Frontend
 
-Advanced Memecoin Intelligence System for Avalanche with RainbowKit wallet integration.
+Advanced Memecoin Intelligence System for BNB Smart Chain with RainbowKit wallet integration.
 
 ## Features
 
 - Real-time chat with AI assistant
-- Avalanche memecoin tracking and analytics
+- BNB Smart Chain memecoin tracking and analytics
 - RainbowKit wallet connection (MetaMask, WalletConnect, etc.)
 - Memecoin explorer and tracking
 - Responsive UI using Tailwind CSS
@@ -15,14 +15,14 @@ Advanced Memecoin Intelligence System for Avalanche with RainbowKit wallet integ
 
 For development and testing purposes, the application connects to:
 
-**Avalanche Fuji Testnet:**
-- Network Name: Avalanche Fuji Testnet
-- RPC URL: https://api.avax-test.network/ext/bc/C/rpc
-- Chain ID: 43113
-- Currency Symbol: AVAX
-- Block Explorer: https://testnet.snowscan.xyz
+**BNB Smart Chain Testnet:**
+- Network Name: BNB Smart Chain Testnet
+- RPC URL: https://api.zan.top/bsc-testnet
+- Chain ID: 97
+- Currency Symbol: tBNB
+- Block Explorer: https://testnet.bscscan.com
 
-> **Note:** While the development environment uses Avalanche Fuji testnet for wallet connections, TrendPup is designed to track and analyze memecoins on Avalanche mainnet in production.
+> **Note:** While the development environment uses BNB Smart Chain testnet for wallet connections, Sniffle is designed to track and analyze memecoins on BNB Smart Chain mainnet in production.
 
 ## Getting Started
 

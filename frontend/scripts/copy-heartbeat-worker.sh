@@ -2,7 +2,7 @@
 # Copy Coinbase HeartbeatWorker.js to public/ for Next.js build workaround
 set -e
 
-COINBASE_WORKER="./node_modules/.pnpm/@coinbase+wallet-sdk@4.3.3/node_modules/@coinbase/wallet-sdk/dist/sign/walletlink/relay/connection/HeartbeatWorker.js"
+COINBASE_WORKER="./node_modules/@coinbase/wallet-sdk/dist/sign/walletlink/relay/connection/HeartbeatWorker.js"
 PUBLIC_WORKER="./public/HeartbeatWorker.js"
 
 if [ -f "$COINBASE_WORKER" ]; then

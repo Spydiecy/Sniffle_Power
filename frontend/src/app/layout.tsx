@@ -16,8 +16,8 @@ const inter = Inter({ subsets: ["latin"] });
 
 // Moved metadata to a separate file since this is now a client component
 // export const metadata: Metadata = {
-//   title: "TrendPup - Advanced Memecoin Intelligence",
-//   description: "Early access to emerging meme tokens on Avalanche Fuji testnet before significant price movements",
+//   title: "Sniffle - Advanced Memecoin Intelligence",
+//   description: "Early access to emerging meme tokens on BNB Smart Chain before significant price movements",
 // };
 
 export default function RootLayout({

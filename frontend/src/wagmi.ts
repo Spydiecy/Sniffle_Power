@@ -1,12 +1,25 @@
 import { getDefaultConfig } from '@rainbow-me/rainbowkit';
-import { avalancheFuji } from 'wagmi/chains';
+import { bscTestnet } from 'wagmi/chains';
+
+// Custom BSC Testnet configuration with your preferred RPC
+const customBscTestnet = {
+  ...bscTestnet,
+  rpcUrls: {
+    default: {
+      http: ['https://api.zan.top/bsc-testnet'],
+    },
+    public: {
+      http: ['https://api.zan.top/bsc-testnet'],
+    },
+  },
+};
 
 export const config = getDefaultConfig({
-  appName: 'TrendPup',
+  appName: 'Sniffle',
   projectId: 'YOUR_PROJECT_ID', // Replace with your WalletConnect project ID  
-  chains: [avalancheFuji],
+  chains: [customBscTestnet],
   ssr: true,
 });
 
 // Ensure we export the chain for use in contracts
-export { avalancheFuji };
+export { customBscTestnet as bscTestnet };
