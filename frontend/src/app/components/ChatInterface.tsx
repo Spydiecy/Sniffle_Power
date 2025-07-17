@@ -13,9 +13,10 @@ interface Message {
 
 interface ChatInterfaceProps {
   fullPage?: boolean;
+  windowMode?: boolean; // New prop for windowed mode
 }
 
-export default function ChatInterface({ fullPage = false }: ChatInterfaceProps) {
+export default function ChatInterface({ fullPage = false, windowMode = false }: ChatInterfaceProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isConnected, setIsConnected] = useState(true);
@@ -94,31 +95,38 @@ export default function ChatInterface({ fullPage = false }: ChatInterfaceProps) 
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
-  const containerHeight = fullPage ? 'h-[calc(100vh-8rem)]' : 'h-[calc(100vh-12rem)]';
+  // Dynamic height calculation based on mode
+  let containerHeight = 'h-[calc(100vh-8rem)]'; // Default for fullPage
+  
+  if (windowMode) {
+    containerHeight = 'h-full'; // Use full container height in window mode
+  } else if (!fullPage) {
+    containerHeight = 'h-[calc(100vh-12rem)]'; // Dashboard mode
+  }
 
   return (
-    <div className={`flex flex-col ${containerHeight} max-w-4xl mx-auto rounded-xl shadow-xl overflow-hidden border border-trendpup-brown/20 bg-white`}>
-      {!fullPage && (
-        <div className="bg-trendpup-dark text-white p-4 flex items-center">
+    <div className={`flex flex-col ${containerHeight} max-w-4xl mx-auto rounded-xl shadow-xl overflow-hidden border border-sniffle-brown/20 bg-white`}>
+      {!fullPage && !windowMode && (
+        <div className="bg-sniffle-dark text-white p-4 flex items-center">
           <div className="flex-shrink-0 mr-3">
             <Image 
               src="/trendpup-logo.png" 
-              alt="TrendPup Logo" 
+              alt="Sniffle Logo" 
               width={32} 
               height={32}
             />
           </div>
           <div>
-            <h1 className="text-xl font-semibold">TrendPup Assistant</h1>
+            <h1 className="text-xl font-semibold">Sniffle Assistant</h1>
             <p className="text-sm opacity-75">
-              Connected to TrendPup Agent - Ready to chat
+              Connected to Sniffle Agent - Ready to chat
             </p>
           </div>
         </div>
       )}
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 bg-trendpup-light">
+      <div className="flex-1 overflow-y-auto p-4 bg-sniffle-light">
         <div className="space-y-4">
           {messages.map((msg, idx) => (
             <div
@@ -127,7 +135,7 @@ export default function ChatInterface({ fullPage = false }: ChatInterfaceProps) 
             >
               <div className={`flex items-start max-w-[80%] ${msg.type === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
                 <div className={`flex-shrink-0 h-8 w-8 rounded-full flex items-center justify-center ${
-                  msg.type === 'user' ? 'bg-trendpup-orange ml-2' : 'bg-trendpup-brown mr-2'
+                  msg.type === 'user' ? 'bg-sniffle-orange ml-2' : 'bg-sniffle-brown mr-2'
                 }`}>
                   {msg.type === 'user' ? (
                     <FaUser className="text-white text-sm" />
@@ -138,8 +146,8 @@ export default function ChatInterface({ fullPage = false }: ChatInterfaceProps) 
                 <div
                   className={`rounded-lg p-3 ${
                     msg.type === 'user'
-                      ? 'bg-trendpup-orange text-white'
-                      : 'bg-white text-trendpup-dark border border-trendpup-brown/20'
+                      ? 'bg-sniffle-orange text-white'
+                      : 'bg-white text-sniffle-dark border border-sniffle-brown/20'
                   }`}
                 >
                   <p className="whitespace-pre-wrap">{msg.content}</p>
@@ -153,14 +161,14 @@ export default function ChatInterface({ fullPage = false }: ChatInterfaceProps) 
           {isTyping && (
             <div className="flex justify-start">
               <div className="flex items-start">
-                <div className="flex-shrink-0 h-8 w-8 rounded-full bg-trendpup-brown mr-2 flex items-center justify-center">
+                <div className="flex-shrink-0 h-8 w-8 rounded-full bg-sniffle-brown mr-2 flex items-center justify-center">
                   <FaDog className="text-white text-sm" />
                 </div>
-                <div className="bg-white text-gray-800 rounded-lg p-3 border border-trendpup-brown/20">
+                <div className="bg-white text-gray-800 rounded-lg p-3 border border-sniffle-brown/20">
                   <div className="flex space-x-1">
-                    <div className="w-2 h-2 bg-trendpup-brown rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                    <div className="w-2 h-2 bg-trendpup-brown rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                    <div className="w-2 h-2 bg-trendpup-brown rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                    <div className="w-2 h-2 bg-sniffle-brown rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                    <div className="w-2 h-2 bg-sniffle-brown rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                    <div className="w-2 h-2 bg-sniffle-brown rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
                   </div>
                 </div>
               </div>
@@ -171,7 +179,7 @@ export default function ChatInterface({ fullPage = false }: ChatInterfaceProps) 
       </div>
 
       {/* Input */}
-      <div className="p-4 bg-white border-t border-trendpup-brown/10">
+      <div className="p-4 bg-white border-t border-sniffle-brown/10">
         <div className="flex items-end space-x-2">
           <textarea
             ref={inputRef}
@@ -180,13 +188,13 @@ export default function ChatInterface({ fullPage = false }: ChatInterfaceProps) 
             onKeyPress={handleKeyPress}
             placeholder={isConnected ? "Ask about memecoins, trends, or market insights..." : "Connecting..."}
             disabled={!isConnected}
-            className="flex-1 p-3 border border-trendpup-brown/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-trendpup-orange resize-none h-12 max-h-32 min-h-[3rem]"
+            className="flex-1 p-3 border border-sniffle-brown/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-sniffle-orange resize-none h-12 max-h-32 min-h-[3rem]"
             rows={1}
           />
           <button
             onClick={sendMessage}
             disabled={!isConnected || !input.trim()}
-            className="p-3 bg-trendpup-orange text-white rounded-lg hover:bg-orange-600 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+            className="p-3 bg-sniffle-orange text-white rounded-lg hover:bg-orange-600 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
           >
             <IoSendSharp className="text-xl" />
           </button>

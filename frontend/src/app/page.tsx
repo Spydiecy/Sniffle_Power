@@ -63,7 +63,7 @@ export default function Home() {
   const getDefaultWindowSize = (id: string): WindowSize => {
     switch(id) {
       case 'chat':
-        return { width: 600, height: 600 };
+        return { width: 700, height: 600 }; // Increased default width for better chat experience
       default:
         return { width: 500, height: 400 };
     }
@@ -302,12 +302,12 @@ export default function Home() {
             className={`bg-white rounded-xl shadow-2xl border-2 border-black overflow-hidden ${activeClass}`}
             style={{
               ...windowStyle,
-              width: `${Math.max(windowData.size.width, 500)}px`,
-              height: `${Math.max(windowData.size.height, 450)}px`,
+              width: `${Math.max(windowData.size.width, 600)}px`, // Increased minimum width
+              height: `${Math.max(windowData.size.height, 500)}px`, // Increased minimum height
             }}
           >
             <div 
-              className="bg-gradient-to-r from-trendpup-dark to-gray-800 text-white p-3 flex justify-between items-center cursor-move"
+              className="bg-gradient-to-r from-sniffle-dark to-gray-800 text-white p-3 flex justify-between items-center cursor-move"
               onMouseDown={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
@@ -316,7 +316,7 @@ export default function Home() {
             >
               <div className="flex items-center">
                 <FaComments className="mr-2" />
-                <h2 className="text-xl font-bold">Chat</h2>
+                <h2 className="text-xl font-bold">Sniffle Chat</h2>
               </div>
               <button 
                 onClick={(e) => {
@@ -334,7 +334,7 @@ export default function Home() {
                 e.stopPropagation();
               }}
             >
-              <ChatInterface />
+              <ChatInterface windowMode={true} />
             </div>
             {/* Resize handle */}
             <div 
