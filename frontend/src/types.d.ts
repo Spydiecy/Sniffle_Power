@@ -6,6 +6,11 @@ declare global {
       [elemName: string]: any;
     }
   }
+
+  interface Window {
+    SpeechRecognition: any;
+    webkitSpeechRecognition: any;
+  }
 }
 
 // This file is needed to resolve the TypeScript errors related to JSX elements

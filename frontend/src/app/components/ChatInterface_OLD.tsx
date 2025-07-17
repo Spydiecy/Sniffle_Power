@@ -14,7 +14,7 @@ interface Message {
 
 interface ChatInterfaceProps {
   fullPage?: boolean;
-  windowMode?: boolean;
+  windowMode?: boolean; // New prop for windowed mode
 }
 
 export default function ChatInterface({ fullPage = false, windowMode = false }: ChatInterfaceProps) {
@@ -22,43 +22,28 @@ export default function ChatInterface({ fullPage = false, windowMode = false }: 
   const [input, setInput] = useState('');
   const [isConnected, setIsConnected] = useState(true);
   const [isTyping, setIsTyping] = useState(false);
+  const [isListening, setIsListening] = useState(false);
+  const [speechRecognition, setSpeechRecognition] = useState<any>(null);
+  const [micPermission, setMicPermission] = useState<'unknown' | 'granted' | 'denied'>('unknown');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
-
-  // Speech recognition setup using react-speech-recognition
-  const {
-    transcript,
-    listening,
-    resetTranscript,
-    browserSupportsSpeechRecognition,
-    isMicrophoneAvailable
-  } = useSpeechRecognition();
 
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
 
   // Ping the agent backend once on app load to ensure the agent process is started
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      fetch('/api/agent-proxy', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: '__ping__' })
-      }).catch(() => {});
-    }
-  }, []);
+  if (typeof window !== 'undefined') {
+    fetch('/api/agent-proxy', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: '__ping__' })
+    }).catch(() => {});
+  }
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
-
-  // Update input when transcript changes
-  useEffect(() => {
-    if (transcript) {
-      setInput(transcript);
-    }
-  }, [transcript]);
 
   const sendMessage = async () => {
     if (!input.trim()) return;
@@ -70,9 +55,9 @@ export default function ChatInterface({ fullPage = false, windowMode = false }: 
     }]);
     setIsTyping(true);
     setInput('');
-    resetTranscript();
     inputRef.current?.focus();
-    
+    let assistantMsg = '';
+    let assistantMsgIdx = -1;
     try {
       const res = await fetch('/api/agent-proxy', {
         method: 'POST',
@@ -80,15 +65,18 @@ export default function ChatInterface({ fullPage = false, windowMode = false }: 
         body: JSON.stringify({ message: messageText })
       });
       const data = await res.json();
-      const assistantMsg = data.response || data.error || 'No response received';
-      setMessages(prev => [
-        ...prev,
-        {
-          type: 'assistant',
-          content: assistantMsg,
-          timestamp: new Date()
-        }
-      ]);
+      assistantMsg = data.response || data.error || '';
+      setMessages(prev => {
+        assistantMsgIdx = prev.length;
+        return [
+          ...prev,
+          {
+            type: 'assistant',
+            content: assistantMsg,
+            timestamp: new Date()
+          }
+        ];
+      });
     } catch (error: any) {
       setMessages(prev => [...prev, {
         type: 'assistant',
@@ -107,29 +95,110 @@ export default function ChatInterface({ fullPage = false, windowMode = false }: 
     }
   };
 
-  const toggleListening = () => {
-    if (!browserSupportsSpeechRecognition) {
-      alert('Browser doesn\'t support speech recognition. Please use Chrome, Edge, or Safari.');
+  // Initialize speech recognition and check permissions
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      // Check microphone permission
+      if (navigator.permissions) {
+        navigator.permissions.query({ name: 'microphone' as PermissionName }).then((result) => {
+          setMicPermission(result.state === 'granted' ? 'granted' : result.state === 'denied' ? 'denied' : 'unknown');
+        }).catch(() => {
+          setMicPermission('unknown');
+        });
+      }
+
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (SpeechRecognition) {
+        const recognition = new SpeechRecognition();
+        recognition.continuous = true; // Keep listening for longer
+        recognition.interimResults = true; // Show interim results
+        recognition.lang = 'en-US';
+        recognition.maxAlternatives = 1;
+
+        recognition.onstart = () => {
+          console.log('Speech recognition started');
+          setIsListening(true);
+          setMicPermission('granted');
+        };
+
+        recognition.onresult = (event: any) => {
+          let finalTranscript = '';
+          let interimTranscript = '';
+
+          for (let i = event.resultIndex; i < event.results.length; i++) {
+            const transcript = event.results[i][0].transcript;
+            if (event.results[i].isFinal) {
+              finalTranscript += transcript;
+            } else {
+              interimTranscript += transcript;
+            }
+          }
+
+          // Only update input with final results to avoid flickering
+          if (finalTranscript) {
+            setInput(prev => {
+              const newValue = prev + (prev.endsWith(' ') || prev === '' ? '' : ' ') + finalTranscript;
+              return newValue;
+            });
+          }
+        };
+
+        recognition.onend = () => {
+          console.log('Speech recognition ended');
+          setIsListening(false);
+        };
+
+        recognition.onerror = (event: any) => {
+          console.error('Speech recognition error:', event.error);
+          setIsListening(false);
+          
+          // Provide user-friendly error messages
+          if (event.error === 'not-allowed') {
+            setMicPermission('denied');
+            alert('Microphone access denied. Please allow microphone access in your browser settings and try again.');
+          } else if (event.error === 'no-speech') {
+            // Don't show error for no-speech, just stop listening
+            console.log('No speech detected');
+          } else if (event.error === 'aborted') {
+            console.log('Speech recognition aborted');
+          } else {
+            console.error('Speech recognition error:', event.error);
+          }
+        };
+
+        setSpeechRecognition(recognition);
+      }
+    }
+  }, []);
+
+  const toggleVoiceRecording = () => {
+    if (!speechRecognition) {
+      alert('Speech recognition is not supported in your browser. Please use a modern browser like Chrome or Edge.');
       return;
     }
 
-    if (listening) {
-      SpeechRecognition.stopListening();
+    if (isListening) {
+      console.log('Stopping speech recognition');
+      speechRecognition.stop();
+      setIsListening(false);
     } else {
-      resetTranscript();
-      SpeechRecognition.startListening({ 
-        continuous: true,
-        language: 'en-US' 
-      });
+      console.log('Starting speech recognition');
+      try {
+        speechRecognition.start();
+      } catch (error) {
+        console.error('Error starting speech recognition:', error);
+        setIsListening(false);
+        alert('Could not start voice recognition. Please try again.');
+      }
     }
   };
 
-  // Auto-focus input after voice input stops
+  // Auto-focus input after voice input
   useEffect(() => {
-    if (!listening && inputRef.current) {
+    if (!isListening && inputRef.current) {
       inputRef.current.focus();
     }
-  }, [listening]);
+  }, [isListening]);
 
   const formatTimestamp = (date: Date) => {
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -232,24 +301,24 @@ export default function ChatInterface({ fullPage = false, windowMode = false }: 
             rows={1}
           />
           <button
-            onClick={toggleListening}
-            disabled={!isConnected || !browserSupportsSpeechRecognition}
+            onClick={toggleVoiceRecording}
+            disabled={!isConnected || micPermission === 'denied'}
             className={`p-3 rounded-lg transition-colors ${
-              listening 
+              isListening 
                 ? 'bg-red-500 hover:bg-red-600 text-white animate-pulse' 
-                : browserSupportsSpeechRecognition
-                ? 'bg-gray-200 hover:bg-gray-300 text-gray-600'
-                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                : micPermission === 'denied'
+                ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                : 'bg-gray-200 hover:bg-gray-300 text-gray-600'
             } disabled:bg-gray-100 disabled:cursor-not-allowed`}
             title={
-              !browserSupportsSpeechRecognition
-                ? 'Speech recognition not supported in this browser'
-                : listening 
+              micPermission === 'denied' 
+                ? 'Microphone access denied - check browser permissions' 
+                : isListening 
                 ? 'Stop recording' 
                 : 'Start voice input'
             }
           >
-            {listening ? (
+            {isListening ? (
               <FaMicrophoneSlash className="text-xl" />
             ) : (
               <FaMicrophone className="text-xl" />
@@ -265,12 +334,12 @@ export default function ChatInterface({ fullPage = false, windowMode = false }: 
         </div>
         
         {/* Voice recording status */}
-        {listening && (
+        {isListening && (
           <div className="mt-2 flex items-center justify-center text-red-500 text-sm">
             <FaMicrophone className="mr-2 animate-pulse" />
-            <span>🎤 Listening... Speak clearly</span>
+            <span>🎤 Listening... Speak clearly and pause when finished</span>
             <button
-              onClick={() => SpeechRecognition.stopListening()}
+              onClick={() => speechRecognition?.stop()}
               className="ml-3 px-2 py-1 bg-red-500 text-white text-xs rounded hover:bg-red-600"
             >
               Stop
@@ -279,16 +348,28 @@ export default function ChatInterface({ fullPage = false, windowMode = false }: 
         )}
         
         {/* Voice input help text */}
-        {browserSupportsSpeechRecognition && !listening && (
+        {speechRecognition && !isListening && micPermission === 'granted' && (
           <div className="mt-2 text-center text-xs text-gray-500">
-            💡 Click the microphone to use voice input • {isMicrophoneAvailable ? 'Microphone ready' : 'Check microphone permissions'}
+            💡 Click the microphone to use voice input • Supported in Chrome, Edge, Safari
+          </div>
+        )}
+        
+        {speechRecognition && !isListening && micPermission === 'denied' && (
+          <div className="mt-2 text-center text-xs text-red-600">
+            🚫 Microphone access denied. Please enable microphone permissions in your browser settings.
+          </div>
+        )}
+        
+        {speechRecognition && !isListening && micPermission === 'unknown' && (
+          <div className="mt-2 text-center text-xs text-amber-600">
+            🎤 Click microphone to enable voice input (permission required)
           </div>
         )}
         
         {/* No speech recognition support */}
-        {!browserSupportsSpeechRecognition && (
+        {!speechRecognition && typeof window !== 'undefined' && (
           <div className="mt-2 text-center text-xs text-amber-600">
-            ⚠️ Voice input not supported in this browser. Try Chrome, Edge, or Safari for voice features.
+            ⚠️ Voice input not supported in this browser. Try Chrome or Edge for voice features.
           </div>
         )}
       </div>
