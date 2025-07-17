@@ -1,6 +1,6 @@
 # Sniffle - BNB Smart Chain AI Memecoin Intelligence
 
-**Advanced AI-powered memecoin intelligence system for BNB Smart Chain with voice-enabled interaction and real-time analytics.**
+**The definitive AI-powered memecoin intelligence platform for BNB Smart Chain, featuring advanced voice interaction, real-time BEP-20 analysis, and professional-grade trading insights delivered through hands-free operation.**
 
 ## Supported Chains
 
@@ -285,31 +285,98 @@ graph TB
         A[✅ AI Analysis]
         B[✅ Voice Interface]
         C[✅ Scam Detection]
-        D[✅ Move Contract Analysis]
-        E[✅ Real-time Data]
-        F[✅ 1 APT Fair Pricing]
+        D[✅ BEP-20 Contract Analysis]
+        E[✅ Real-time BSC Data]
+        F[✅ Free Access Model]
         G[✅ Multi-wallet Support]
         H[✅ Early Detection]
+        I[✅ Text-to-Speech]
+        J[✅ BSC DEX Integration]
     end
     
     subgraph "Traditional Tools"
-        I[❌ Manual Research]
-        J[❌ Text Only]
-        K[❌ Basic Filtering]
-- **Backend Services (Node.js + Python):**  
-  API server processes requests and coordinates data analysis.  
-  Python AI agent provides intelligent token analysis and insights.  
-  Web scrapers collect real-time data from BNB Smart Chain DEXs and social media.
+        K[❌ Manual Research]
+        L[❌ Text Only Interface]
+        M[❌ Basic Filtering]
+        N[❌ Expensive Subscriptions]
+        O[❌ No Voice Features]
+        P[❌ Limited BSC Focus]
+        Q[❌ Delayed Data]
+        R[❌ Late Discovery]
+    end
+    
+    style A fill:#32cd32
+    style B fill:#32cd32
+    style C fill:#32cd32
+    style D fill:#32cd32
+    style E fill:#32cd32
+    style F fill:#32cd32
+    style G fill:#32cd32
+    style H fill:#32cd32
+    style I fill:#32cd32
+    style J fill:#32cd32
+    
+    style K fill:#ff4444
+    style L fill:#ff4444
+    style M fill:#ff4444
+    style N fill:#ff4444
+    style O fill:#ff4444
+    style P fill:#ff4444
+    style Q fill:#ff4444
+    style R fill:#ff4444
+```
+
+**Component Breakdown**
+
+- **Hosting:**  
+  Services are designed for cloud deployment with modern infrastructure optimized for BNB Smart Chain data processing.
+
+- **Frontend (Next.js):**  
+  Handles BNB Smart Chain wallet connection and user interface.  
+  Supports multiple BSC-compatible wallets including MetaMask, Trust Wallet, Binance Chain Wallet, and more.  
+  Features voice input/output capabilities for hands-free AI interaction.  
+  Free access to all AI-powered memecoin analysis features.
+
+- **Smart Contract (Solidity):**  
+  Will be deployed on BNB Smart Chain testnet for transparent access control.  
+  Contract address to be provided later for payment system.  
+  Decentralized and auditable payment system using tBNB.
+
+- **Scraper:**  
+  Scrapes BSC DEXs for token data across multiple protocols like PancakeSwap, BiSwap, and Apeswap.  
+  Scrapes Twitter for token-related tweets and sentiment analysis.  
+  Monitors BNB Smart Chain ecosystem for emerging opportunities and new token launches.
+
+- **AI Analysis (Launch IO AI Models):**  
+  Reads tweets and BSC token data for comprehensive market analysis.  
+  Determines risk score, investment potential, and provides detailed rationale.  
+  Specialized analysis for BEP-20 smart contracts and BSC ecosystem dynamics.
+
+- **Custom Agent (Launch IO AI Models + RAG):**  
+  Advanced AI agent with Retrieval-Augmented Generation specialized for BNB Smart Chain.  
+  Answers user queries with the latest BSC token data and in-depth analysis.  
+  Supports natural voice interaction and text-to-speech responses for hands-free operation.
+
+- **Voice Interface:**  
+  Speech recognition for natural voice commands and queries about BSC tokens.  
+  High-quality text-to-speech with customizable voice selection for market updates.  
+  Hands-free trading insights and market analysis optimized for BNB Smart Chain data.
+
+- **Access Control System:**  
+  Smart contract-based premium access control (to be implemented on BSC).  
+  Transparent pricing for access periods using BNB/tBNB.  
+  Automatic access verification and time tracking via BEP-20 smart contracts.  
+  Seamless wallet integration for payment processing using BSC infrastructure.
 
 - **AI Infrastructure:**  
-  Modern AI models for advanced analysis and pattern recognition.  
-  Speech recognition for voice input processing.  
-  Text-to-speech synthesis for voice responses.
+  Modern AI models for advanced BEP-20 token analysis and pattern recognition.  
+  Speech recognition for voice input processing with BSC-specific commands.  
+  Text-to-speech synthesis for voice responses about BSC market conditions and token analysis.
 
 - **Data Integration:**  
-  Real-time scraping of BSC DEX data and BEP-20 token metrics.  
-  Social sentiment analysis from Twitter, Telegram, and other platforms.  
-  On-chain analytics from BNB Smart Chain blockchain data.
+  Real-time scraping of BSC DEX data and BEP-20 token metrics from PancakeSwap, BiSwap, and other platforms.  
+  Social sentiment analysis from Twitter, Telegram, and other platforms focused on BSC tokens.  
+  On-chain analytics from BNB Smart Chain blockchain data and transaction patterns.
 
 ## Why Sniffle vs. Traditional Tools?
 
@@ -357,29 +424,62 @@ graph LR
 ```
 
 **Summary:**  
-Sniffle provides free, AI-powered memecoin intelligence for BNB Smart Chain users through an innovative voice-enabled interface. The platform aggregates real-time blockchain and social data from the BSC ecosystem, then leverages advanced AI models for investment analysis and conversational intelligence, all delivered through a modern Next.js frontend with comprehensive BNB-compatible wallet integration and hands-free voice interaction capabilities.
+Sniffle is the premier free AI-powered memecoin intelligence platform designed exclusively for the BNB Smart Chain ecosystem. Through an innovative voice-enabled interface, users can interact naturally with advanced AI agents to discover high-potential BEP-20 tokens before major price movements. 
+
+The platform combines real-time data scraping from BSC DEXs (PancakeSwap, BiSwap, Apeswap), social sentiment analysis, and sophisticated AI models to provide professional-grade trading insights. With hands-free voice input and text-to-speech responses, users can query markets, analyze tokens, and receive investment recommendations while maintaining their focus on trading activities.
+
+Key differentiators include seamless integration with BSC-compatible wallets (MetaMask, Trust Wallet, Binance Chain Wallet), specialized BEP-20 smart contract analysis, and a commitment to democratizing access to institutional-level market intelligence through a completely free platform model.
 
 ---
 
-## Success Metrics
+## Voice Interface Features
+
+Sniffle's advanced voice capabilities set it apart in the BSC memecoin analysis space:
+
+### 🎤 Voice Input
+- **Hands-free Queries**: Ask about BSC tokens using natural speech
+- **Multi-browser Support**: Works with Chrome, Edge, Safari, and other modern browsers
+- **Continuous Listening**: Advanced speech recognition that stays active during conversation
+- **Smart Interruption**: Stop and restart voice input seamlessly
+
+### 🔊 Text-to-Speech Output
+- **Natural AI Voice**: High-quality speech synthesis for AI responses
+- **Customizable Settings**: Adjustable speech rate, pitch, and volume
+- **Smart Voice Selection**: Automatically chooses the best available voice for your system
+- **Toggle Control**: Easy on/off control via speaker button in chat header
+
+### 🎯 BSC-Optimized Commands
+- Voice commands optimized for BNB Smart Chain terminology
+- Natural language processing for BEP-20 token queries
+- Specialized responses for BSC DEX data and market conditions
+- Hands-free analysis of PancakeSwap and other BSC protocol data
+
+The voice interface makes Sniffle the only BSC memecoin platform offering true hands-free operation, perfect for active traders who need to multitask while monitoring markets.
+
+---
+
+## Success Metrics for BNB Smart Chain Focus
 
 ```mermaid
 graph TD
-    A[Sniffle Success Metrics] --> B[User Satisfaction]
-    A --> C[Detection Accuracy]
+    A[Sniffle BSC Success Metrics] --> B[User Satisfaction]
+    A --> C[BSC Detection Accuracy]
     A --> D[Early Warning Speed]
     A --> E[ROI Performance]
+    A --> F[Voice Interface Adoption]
     
-    B --> F[95%+ User Retention]
-    C --> G[90%+ Scam Detection Rate]
-    D --> H[2-6 Hours Before Pump]
-    E --> I[Average 15x Return Potential]
+    B --> G[95%+ User Retention on BSC]
+    C --> H[90%+ BEP-20 Scam Detection Rate]
+    D --> I[2-6 Hours Before BSC Pump]
+    E --> J[Average 15x Return on BSC Tokens]
+    F --> K[70%+ Voice Feature Usage]
     
     style A fill:#ff6b35
-    style F fill:#32cd32
     style G fill:#32cd32
     style H fill:#32cd32
     style I fill:#32cd32
+    style J fill:#32cd32
+    style K fill:#32cd32
 ```
 
-*Sniffle - AI-powered BNB Smart Chain memecoin intelligence, now with voice interaction capabilities.*
+*Sniffle - The definitive AI-powered BNB Smart Chain memecoin intelligence platform with advanced voice interaction capabilities, democratizing access to professional-grade trading insights for the BSC ecosystem.*
