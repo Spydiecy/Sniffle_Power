@@ -271,8 +271,8 @@ async function runScraper() {
         Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
       });
       // Load cookies for authentication if available
-      if (fs.existsSync('cookies.json')) {
-        const cookiesRaw = JSON.parse(fs.readFileSync('cookies.json', 'utf8'));
+      if (fs.existsSync(require('path').resolve(__dirname, '../cookies.json'))) {
+        const cookiesRaw = JSON.parse(fs.readFileSync(require('path').resolve(__dirname, '../cookies.json'), 'utf8'));
         const cookies = cookiesRaw.map((cookie: any) => ({
           name: cookie.name,
           value: cookie.value,
@@ -825,8 +825,8 @@ async function scrapeNewTokens(newTokens: Token[]) {
         Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
       });
       // Load cookies for authentication if available
-      if (fs.existsSync('cookies.json')) {
-        const cookiesRaw = JSON.parse(fs.readFileSync('cookies.json', 'utf8'));
+      if (fs.existsSync(require('path').resolve(__dirname, '../cookies.json'))) {
+        const cookiesRaw = JSON.parse(fs.readFileSync(require('path').resolve(__dirname, '../cookies.json'), 'utf8'));
         const cookies = cookiesRaw.map((cookie: any) => ({
           name: cookie.name,
           value: cookie.value,
@@ -972,7 +972,7 @@ async function scrapeNewTokens(newTokens: Token[]) {
     const tokens = getAllTokens();
     const browser = await chromium.launch({ headless: true });
     try {
-      const cookiesRaw = JSON.parse(fs.readFileSync('cookies.json', 'utf8'));
+      const cookiesRaw = JSON.parse(fs.readFileSync(require('path').resolve(__dirname, '../cookies.json'), 'utf8'));
       const cookies = cookiesRaw.map((cookie: any) => ({
         name: cookie.name,
         value: cookie.value,
