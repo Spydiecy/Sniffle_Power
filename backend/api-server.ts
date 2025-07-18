@@ -10,6 +10,9 @@ app.use(cors());
 
 // Serve ai_analyzer.json as token data with all market data included
 app.get('/api/token-data', (req: Request, res: Response) => {
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  res.set('Pragma', 'no-cache');
+  res.set('Expires', '0');
   const filePath = path.join(__dirname, '../ai_analyzer.json');
   if (fs.existsSync(filePath)) {
     try {

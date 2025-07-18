@@ -129,7 +129,7 @@ export default function ChatInterface({ fullPage = false, windowMode = false }: 
       const res = await fetch('/api/agent-proxy', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: messageText })
+        body: JSON.stringify({ input: messageText })
       });
       const data = await res.json();
       const assistantMsg = data.response || data.error || 'No response received';

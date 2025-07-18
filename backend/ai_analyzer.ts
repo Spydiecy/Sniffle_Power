@@ -179,7 +179,13 @@ function updateMarketData(analysisResults: TokenAnalysis[], binanceTokens: any):
   };
 
   let updatedCount = 0;
-  const updatedResults = analysisResults.map(analysis => {
+  // Get set of valid symbols from binanceTokens
+  const validSymbols = new Set((binanceTokens?.tokens || []).map((t: any) => t.symbol));
+
+  // Filter out any analysis whose symbol is not in binance_tokens.json
+  const filteredResults = analysisResults.filter(analysis => validSymbols.has(analysis.symbol));
+
+  const updatedResults = filteredResults.map(analysis => {
     const tokenInfo = getTokenInfo(analysis.symbol, binanceTokens);
     if (tokenInfo) {
       console.log(`Updated market data for ${analysis.symbol}`);
@@ -195,11 +201,11 @@ function updateMarketData(analysisResults: TokenAnalysis[], binanceTokens: any):
         href: tokenInfo.href || analysis.href || '#'
       };
     }
-    // Return original analysis if token is not found in binance_tokens.json
-    return analysis;
-  });
+    // Should never happen, but return null if not found
+    return null;
+  }).filter(Boolean) as TokenAnalysis[];
 
-  console.log(`Updated market data for ${updatedCount} out of ${analysisResults.length} tokens`);
+  console.log(`Updated market data for ${updatedCount} out of ${filteredResults.length} tokens`);
   return updatedResults;
 }
 
