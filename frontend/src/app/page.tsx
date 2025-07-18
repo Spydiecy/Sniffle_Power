@@ -460,11 +460,39 @@ export default function Home() {
             </div>
             <div className="p-6 overflow-auto max-h-[500px]">
               <h1 className="text-2xl font-bold text-sniffle-dark mb-3">Sniffle: BNB Smart Chain AI Memecoin Intelligence</h1>
+              <p className="text-sm text-blue-600 mb-4">🏆 FAIR3 Fairness Hackathon Submission - Tech Fairness + BNB Chain + AI × Web3</p>
               
               <h2 className="text-xl font-bold text-sniffle-dark mt-6 mb-3">Executive Summary</h2>
               <div className="prose prose-sm">
                 <p className="mb-3">Sniffle is the premier free AI-powered memecoin intelligence platform designed exclusively for the BNB Smart Chain ecosystem. Through an innovative voice-enabled interface, users can interact naturally with advanced AI agents to discover high-potential BEP-20 tokens before major price movements.</p>
                 <p className="mb-3">The platform combines real-time data scraping from BSC DEXs (PancakeSwap, BiSwap, Apeswap), social sentiment analysis, and sophisticated AI models to provide professional-grade trading insights. With hands-free voice input and text-to-speech responses, users can query markets, analyze tokens, and receive investment recommendations while maintaining their focus on trading activities.</p>
+              </div>
+
+              <h2 className="text-xl font-bold text-sniffle-dark mt-6 mb-3">🏆 Hackathon Track Alignment</h2>
+              <div className="prose prose-sm">
+                <h3 className="text-lg font-semibold text-sniffle-dark mt-4 mb-2">🎯 Tech Fairness Implementation</h3>
+                <ul className="list-disc pl-5 mb-4">
+                  <li><strong>Algorithm Transparency:</strong> Open-source AI models with explainable risk scoring for BEP-20 tokens</li>
+                  <li><strong>Data Sovereignty:</strong> Users maintain control over their wallet data and trading preferences</li>
+                  <li><strong>Sustainable Income:</strong> Democratizes professional-grade trading intelligence, previously exclusive to institutions</li>
+                  <li><strong>Human-Centered AI:</strong> Voice-first interface makes AI accessible to all users, regardless of technical expertise</li>
+                </ul>
+
+                <h3 className="text-lg font-semibold text-sniffle-dark mt-4 mb-2">🔗 BNB Chain Integration</h3>
+                <ul className="list-disc pl-5 mb-4">
+                  <li><strong>Native BEP-20 Analysis:</strong> Built specifically for BNB Smart Chain ecosystem with deep protocol integration</li>
+                  <li><strong>BSC DEX Integration:</strong> Real-time data from PancakeSwap, BiSwap, and other BSC protocols</li>
+                  <li><strong>Multi-Wallet Support:</strong> Seamless integration with MetaMask, Trust Wallet, Binance Chain Wallet</li>
+                  <li><strong>Cross-Chain Composability:</strong> Designed for future expansion to other EVM-compatible chains</li>
+                </ul>
+
+                <h3 className="text-lg font-semibold text-sniffle-dark mt-4 mb-2">🤖 AI × Web3 Innovation</h3>
+                <ul className="list-disc pl-5 mb-4">
+                  <li><strong>Multi-Agent Coordination:</strong> Specialized AI agents for different aspects of token analysis</li>
+                  <li><strong>Voice-Enabled Interface:</strong> Natural language processing for hands-free trading insights</li>
+                  <li><strong>Decentralized Intelligence:</strong> Community-driven AI that learns from collective trading patterns</li>
+                  <li><strong>Mass-Market Accessibility:</strong> Scalable architecture for millions of users</li>
+                </ul>
               </div>
 
               <h2 className="text-xl font-bold text-sniffle-dark mt-6 mb-3">Voice Interface Features</h2>
@@ -526,7 +554,15 @@ export default function Home() {
                   <li><strong>Integrated Data Intelligence:</strong> Unified analysis combining social indicators with on-chain BSC metrics</li>
                   <li><strong>Voice-First Design:</strong> Revolutionary hands-free operation for active traders</li>
                   <li><strong>Free Access Model:</strong> Democratizing access to professional-grade trading intelligence</li>
+                  <li><strong>Community-Driven:</strong> Open-source development with transparent governance</li>
+                  <li><strong>Fairness-First:</strong> No subscription fees, no premium tiers, no gatekeepers</li>
                 </ul>
+              </div>
+
+              <h2 className="text-xl font-bold text-sniffle-dark mt-6 mb-3">Hackathon Innovation</h2>
+              <div className="prose prose-sm">
+                <p className="mb-3">Sniffle represents a paradigm shift in how retail traders access market intelligence. By combining the transparency of Web3 with the power of AI and the accessibility of voice interaction, we're building the first truly fair memecoin intelligence platform.</p>
+                <p className="mb-3">Our submission demonstrates how tech fairness principles can be applied to real-world financial applications, creating sustainable income opportunities for retail traders while maintaining complete transparency and user control.</p>
               </div>
 
               <h2 className="text-xl font-bold text-sniffle-dark mt-6 mb-3">Success Metrics</h2>
@@ -542,7 +578,10 @@ export default function Home() {
 
               <h2 className="text-xl font-bold text-sniffle-dark mt-6 mb-3">Contact Information</h2>
               <div className="prose prose-sm">
+                <p className="mb-2"><strong>FAIR3 Fairness Hackathon Submission</strong></p>
+                <p className="mb-2">Competing in: Tech Fairness • BNB Chain Integration • AI × Web3 • Public Infrastructure</p>
                 <p className="italic mt-4">Email: tanishqgupta322@gmail.com | Twitter: @Sniffle_BSC | Discord: tbd</p>
+                <p className="text-xs text-gray-600 mt-2">Built with ❤️ for the BNB Smart Chain ecosystem</p>
               </div>
             </div>
             {/* Resize handle */}
