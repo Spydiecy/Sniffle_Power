@@ -107,3 +107,12 @@ coverage/
 # IDE and editor files
 *.sublime-project
 *.sublime-workspace
+
+*pnpm-lock.yaml
+*.png
+*.html
+cookies.json
+backend/binance_tokens.json
+backend/tweets.json
+backend/ai_analyzer.json
+frontend/pnpm-lock.yaml
