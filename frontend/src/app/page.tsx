@@ -7,8 +7,6 @@ import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { useAccount, useDisconnect } from 'wagmi';
 import ChatInterface from './components/ChatInterface';
 import MemecoinsExplorer from './components/MemecoinsExplorer';
-import AccessControl from './components/AccessControl';
-import AccessStatus from './components/AccessStatus';
 
 // Window position interface
 interface WindowPosition {
@@ -267,7 +265,6 @@ export default function Home() {
               </button>
             </div>
             <div className="p-6">
-              <AccessStatus />
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Dashboard widgets */}
                 <div className="bg-gradient-to-br from-trendpup-beige/50 to-trendpup-beige p-4 rounded-xl shadow-sm">
@@ -722,15 +719,14 @@ export default function Home() {
   };
 
       return (
-    <AccessControl>
-      <main 
-        ref={containerRef}
-        className="min-h-screen dashboard-bg relative overflow-hidden"
-        onClick={(e) => {
-          e.stopPropagation();
-          activeWindowId && bringToFront(activeWindowId);
-        }}
-      >
+    <main 
+      ref={containerRef}
+      className="min-h-screen dashboard-bg relative overflow-hidden"
+      onClick={(e) => {
+        e.stopPropagation();
+        activeWindowId && bringToFront(activeWindowId);
+      }}
+    >
         {/* Landing page */}
         {!appStarted && renderLandingPage()}
 
@@ -824,6 +820,5 @@ export default function Home() {
 
         {/* Debug info - remove in production */}
       </main>
-    </AccessControl>
   );
 }
