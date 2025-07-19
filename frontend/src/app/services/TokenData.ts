@@ -31,7 +31,7 @@ export interface FormattedMemecoin {
   favorite: boolean;
   potential: number;
   risk: number;
-  href: string; // add href to interface
+  href: string;
 }
 
 // Function to parse price strings, handling various formats
@@ -137,28 +137,79 @@ const processTokenData = (data: any[]): FormattedMemecoin[] => {
   });
 };
 
-export const fetchTokenData = async (): Promise<FormattedMemecoin[]> => {
+export const fetchTokenData = async (forceRefresh: boolean = false): Promise<FormattedMemecoin[]> => {
   try {
-    // Add cache-busting query param
-    const response = await fetch(`/api/token-data?_=${Date.now()}`, { cache: 'no-store' });
+    console.log('Fetching token data at:', new Date().toISOString());
+    
+    // More aggressive cache busting
+    const cacheBuster = `_=${Date.now()}&r=${Math.random()}${forceRefresh ? '&force=1' : ''}`;
+    const url = `/api/token-data?${cacheBuster}`;
+    
+    console.log('Fetch URL:', url);
+    
+    const response = await fetch(url, { 
+      cache: 'no-store',
+      headers: {
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0',
+      }
+    });
+    
+    console.log('Response status:', response.status);
+    console.log('Response headers:', Object.fromEntries(response.headers.entries()));
+    
     if (!response.ok) {
       console.warn('API request failed, using fallback data');
       return [];
     }
+    
     const raw = await response.json();
+    console.log('Raw response:', raw);
+    
     // Support both { data: [...] } and { results: [...] } formats
     const tokens: any[] = Array.isArray(raw.data)
       ? raw.data
       : Array.isArray(raw.results)
         ? raw.results
         : [];
+    
+    console.log('Tokens found:', tokens.length);
+    
     if (!tokens.length) {
       console.warn('No token data found in API response');
       return [];
     }
-    return processTokenData(tokens);
+    
+    const processed = processTokenData(tokens);
+    console.log('Processed tokens:', processed.length);
+    
+    return processed;
   } catch (error) {
     console.error('Error fetching Token data:', error);
     return [];
+  }
+};
+
+// Function to force cache invalidation
+export const invalidateTokenCache = async (): Promise<boolean> => {
+  try {
+    const response = await fetch('/api/revalidate', { 
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      }
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Cache invalidation failed: ${response.status}`);
+    }
+    
+    const result = await response.json();
+    console.log('Cache invalidation result:', result);
+    return true;
+  } catch (error) {
+    console.error('Failed to invalidate cache:', error);
+    return false;
   }
 };

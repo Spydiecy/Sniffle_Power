@@ -21,7 +21,258 @@ const ioClient = new OpenAI({
 // Track last modification time of binance_tokens.json
 let lastBinanceTokensModified = 0;
 
-// Function to check if binance_tokens.json was updated
+// Simplified interface matching frontend expectations
+interface SimplifiedTokenAnalysis {
+  symbol: string;
+  symbol1?: string;
+  risk: number;                    // 1-10 (10 = highest risk)
+  investmentPotential: number;     // 1-10 (10 = highest potential)
+  rationale: string;
+  
+  // Market data for frontend
+  price: number;
+  volume: string;
+  marketCap: string;
+  change24h: number;
+  age: string;
+  href: string;
+  
+  // Analysis metadata
+  lastAnalyzed: string;
+}
+
+// Keep the risk assessment functions from the previous version
+function parseNumericValue(valueStr: string): number {
+  if (!valueStr || valueStr === 'N/A' || valueStr === '-') return 0;
+  
+  const cleaned = valueStr.toLowerCase().replace(/[,$\s]/g, '');
+  let multiplier = 1;
+  
+  if (cleaned.includes('k')) {
+    multiplier = 1000;
+  } else if (cleaned.includes('m')) {
+    multiplier = 1000000;
+  } else if (cleaned.includes('b')) {
+    multiplier = 1000000000;
+  }
+  
+  const numStr = cleaned.replace(/[kmb]/g, '');
+  const num = parseFloat(numStr);
+  
+  return isNaN(num) ? 0 : num * multiplier;
+}
+
+function parseAge(ageStr: string): number {
+  if (!ageStr || ageStr === 'N/A') return Number.MAX_SAFE_INTEGER;
+  const match = ageStr.match(/(\d+)(mo|[smhdy])/);
+  if (!match) return Number.MAX_SAFE_INTEGER;
+  const value = parseInt(match[1], 10);
+  const unit = match[2];
+  switch (unit) {
+    case 's': return value;
+    case 'm': return value * 60;
+    case 'h': return value * 3600;
+    case 'd': return value * 86400;
+    case 'mo': return value * 2592000;
+    case 'y': return value * 31536000;
+    default: return Number.MAX_SAFE_INTEGER;
+  }
+}
+
+function assessFundamentalRisk(liquidity: string, volume: string, age: string, change24h: number): number {
+  let riskAdjustment = 0;
+  
+  // Liquidity risk
+  const liquidityNum = parseNumericValue(liquidity);
+  if (liquidityNum < 10000) riskAdjustment += 3;
+  else if (liquidityNum < 50000) riskAdjustment += 2;
+  else if (liquidityNum < 100000) riskAdjustment += 1;
+  
+  // Age risk
+  const ageInSeconds = parseAge(age);
+  const ageInDays = ageInSeconds / 86400;
+  if (ageInDays < 1) riskAdjustment += 3;
+  else if (ageInDays < 7) riskAdjustment += 2;
+  else if (ageInDays < 30) riskAdjustment += 1;
+  
+  // Volatility risk
+  const absChange = Math.abs(change24h);
+  if (absChange > 200) riskAdjustment += 3;
+  else if (absChange > 100) riskAdjustment += 2;
+  else if (absChange > 50) riskAdjustment += 1;
+  
+  return riskAdjustment;
+}
+
+// Simplified analysis function
+async function analyzeTokenSimplified(symbol: string, tweets: any[], tokenInfo: any): Promise<SimplifiedTokenAnalysis | null> {
+  if (!tokenInfo) {
+    console.log(`Token ${symbol} not found in binance_tokens.json. Skipping analysis.`);
+    return null;
+  }
+
+  const tokenInfoStr = tokenInfo ? `Token Data: ${JSON.stringify(tokenInfo, null, 2)}\n` : '';
+  const tweetsText = tweets.map(t => t.text).slice(0, 15).join(' | ');
+  
+  const simplifiedPrompt = `
+MEMECOIN RISK & POTENTIAL ANALYSIS
+
+Token: ${symbol}
+${tokenInfoStr}
+Social Data: ${tweetsText}
+
+ANALYSIS REQUIREMENTS:
+Analyze this memecoin focusing on:
+1. Investment risk level (1-10, where 10 = extremely risky)
+2. Investment potential (1-10, where 10 = highest potential)
+3. Consider liquidity, age, volatility, and community factors
+
+CRITICAL FACTORS:
+- Low liquidity (<$50K) = higher risk
+- New tokens (<7 days) = higher risk  
+- Extreme volatility (>100% daily) = higher risk
+- Strong community engagement = higher potential
+
+Respond with ONLY valid JSON:
+{
+  "symbol": "${symbol}",
+  "is_memecoin": boolean,
+  "risk": number,
+  "potential": number,
+  "rationale": "Brief analysis explaining the risk and potential scores"
+}`;
+
+  try {
+    const response = await ioClient.chat.completions.create({
+      model: 'meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8',
+      messages: [
+        {
+          role: 'system',
+          content: 'You are a crypto analyst focused on memecoin risk and potential assessment. Always respond with valid JSON only.'
+        },
+        {
+          role: 'user',
+          content: simplifiedPrompt
+        }
+      ],
+      temperature: 0.3,
+      max_tokens: 800,
+      stream: false
+    });
+
+    const responseText = response.choices[0]?.message?.content || '';
+    
+    let text = responseText.replace(/``````/g, '').trim();
+    text = text.replace(/([\x00-\x08\x0B\x0C\x0E-\x1F])/g, ' ');
+    
+    const match = text.match(/\{[\s\S]*?\}/);
+    let parsed;
+    try {
+      parsed = match ? JSON.parse(match[0]) : JSON.parse(text);
+    } catch (e) {
+      console.error(`Error parsing JSON for ${symbol}:`, e);
+      return null;
+    }
+    
+    if (!parsed.is_memecoin) {
+      console.log(`Token ${symbol} is not classified as a memecoin. Skipping.`);
+      return null;
+    }
+
+    // Parse market data
+    const parsePrice = (priceStr: string): number => {
+      const cleaned = priceStr.replace(/,/g, '').replace(/[^\d.-]/g, '');
+      const price = parseFloat(cleaned);
+      return isNaN(price) ? 0 : price;
+    };
+    
+    const parseChange = (changeStr: string): number => {
+      if (changeStr === 'N/A' || !changeStr) return 0;
+      const cleaned = changeStr.replace(/[^\d.-]/g, '');
+      const change = parseFloat(cleaned);
+      return isNaN(change) ? 0 : change;
+    };
+
+    const price = tokenInfo?.price ? parsePrice(tokenInfo.price) : 0;
+    const volume = tokenInfo?.volume || 'N/A';
+    const marketCap = tokenInfo?.mcap || 'N/A';
+    const liquidity = tokenInfo?.liquidity || 'N/A';
+    const change24h = tokenInfo?.['change-24h'] ? parseChange(tokenInfo['change-24h']) : 0;
+    const age = tokenInfo?.age || 'N/A';
+
+    // Apply fundamental risk adjustments
+    const fundamentalRiskAdjustment = assessFundamentalRisk(liquidity, volume, age, change24h);
+    const adjustedRisk = Math.min(10, Math.max(1, parsed.risk + fundamentalRiskAdjustment));
+
+    return {
+      symbol: parsed.symbol || symbol,
+      symbol1: tokenInfo?.symbol1 || '',
+      risk: adjustedRisk,
+      investmentPotential: parsed.potential || 1,
+      rationale: parsed.rationale || 'Analysis completed',
+      
+      // Market data for frontend
+      price,
+      volume,
+      marketCap,
+      change24h,
+      age,
+      href: tokenInfo?.href || '#',
+      
+      lastAnalyzed: new Date().toISOString()
+    };
+
+  } catch (e: any) {
+    console.error(`Analysis error for ${symbol}:`, e);
+    if (e.status === 429 || e.code === 429) {
+      throw new Error('RATE_LIMIT_EXCEEDED');
+    }
+    return null;
+  }
+}
+
+// Simplified result writing function
+function writeSimplifiedResults(results: SimplifiedTokenAnalysis[], outputFile: string) {
+  if (!results.length) {
+    const output = {
+      data: []
+    };
+    fs.writeFileSync(outputFile, JSON.stringify(output, null, 2));
+    return;
+  }
+  
+  // Transform to frontend-compatible format
+  const simplifiedResults = results.map((analysis, index) => ({
+    id: index + 1,
+    symbol: analysis.symbol,
+    symbol1: analysis.symbol1 || '',
+    price: analysis.price,
+    volume: analysis.volume,
+    marketCap: analysis.marketCap,
+    change24h: analysis.change24h,
+    age: analysis.age,
+    favorite: false, // Frontend will handle this
+    potential: analysis.investmentPotential,
+    risk: analysis.risk,
+    href: analysis.href
+  }));
+  
+  // Sort by risk (lowest first), then by potential (highest first)
+  simplifiedResults.sort((a, b) => {
+    if (a.risk !== b.risk) return a.risk - b.risk;
+    return b.potential - a.potential;
+  });
+  
+  // Simple output structure
+  const output = {
+    data: simplifiedResults
+  };
+  
+  fs.writeFileSync(outputFile, JSON.stringify(output, null, 2));
+  console.log(`Written ${simplifiedResults.length} simplified analyses`);
+}
+
+// Utility functions
 function checkBinanceTokensUpdated(): boolean {
   try {
     if (!fs.existsSync(BINANCE_TOKENS)) return false;
@@ -37,133 +288,40 @@ function checkBinanceTokensUpdated(): boolean {
   }
 }
 
-// Helper to get token info from binance_tokens.json
 function getTokenInfo(symbol: string, binanceTokens: any): any {
   if (!binanceTokens?.tokens) return null;
   return binanceTokens.tokens.find((t: any) => t.symbol === symbol) || null;
 }
 
-async function analyzeTokenIOIntelligence(symbol: string, tweets: any[], tokenInfo: any): Promise<TokenAnalysis | null> {
-  let tokenInfoStr = '';
-  if (tokenInfo) {
-    tokenInfoStr = `Token info: ${JSON.stringify(tokenInfo)}\n`;
-  }
-  // Use up to 20 tweets, and instruct the AI to use market data and name if tweets are insufficient
-  const tweetsText = tweets.map(t => t.text).slice(0, 20).join(' | ');
-  const prompt = `Determine if the following token is a memecoin. Use the recent tweets below if available. If there is not enough tweet data, use the token's market data and name to make your determination. If it is a memecoin, analyze it for risk (1-10, 10=highest risk), investment potential (1-10, 10=best potential), and an overall score (1-100, 100=best overall). Token symbol: ${symbol}\n${tokenInfoStr}Recent tweets: ${tweetsText}\nRespond ONLY with a single JSON object, no extra text, no code blocks, no explanations. The JSON object MUST have these exact keys: symbol, is_memecoin (boolean), risk, potential, overall, rationale. Example: { "symbol": "${symbol}", "is_memecoin": true, "risk": 5, "potential": 7, "overall": 65, "rationale": "..." }`;
+function cleanupAnalysisResults(analysisResults: SimplifiedTokenAnalysis[], binanceTokens: any): SimplifiedTokenAnalysis[] {
+  if (!analysisResults.length) return analysisResults;
+
+  console.log('Cleaning up analysis results...');
   
-  try {
-    const response = await ioClient.chat.completions.create({
-      model: 'meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8',
-      messages: [
-        {
-          role: 'system',
-          content: 'You are a crypto analyst specialized in memecoin analysis. Always respond with valid JSON format only.'
-        },
-        {
-          role: 'user',
-          content: prompt
-        }
-      ],
-      temperature: 0.7,
-      max_tokens: 1000,
-      stream: false
+  const availableTokenSymbols = new Set<string>();
+  if (binanceTokens && Array.isArray(binanceTokens.tokens)) {
+    binanceTokens.tokens.forEach((token: any) => {
+      if (token.symbol) {
+        availableTokenSymbols.add(token.symbol);
+      }
     });
-
-    const responseText = response.choices[0]?.message?.content || '';
-    
-    let text = responseText.replace(/```json|```/g, '').trim();
-    text = text.replace(/([\x00-\x08\x0B\x0C\x0E-\x1F])/g, ' ');
-    const match = text.match(/\{[\s\S]*?\}/);
-    let parsed;
-    try {
-      parsed = match ? JSON.parse(match[0]) : JSON.parse(text);
-    } catch (e) {
-      console.error(`Error parsing extracted JSON for ${symbol}:`, e, '\nExtracted:', match ? match[0] : text);
-      return null;
-    }
-    if (!parsed.is_memecoin) {
-      console.log(`Token ${symbol} is not a memecoin. Skipping.`);
-      return null;
-    }
-    
-    // Helper function to parse price strings
-    const parsePrice = (priceStr: string): number => {
-      const cleaned = priceStr.replace(/,/g, '').replace(/[^\d.-]/g, '');
-      const price = parseFloat(cleaned);
-      return isNaN(price) ? 0 : price;
-    };
-    
-    // Helper function to parse percentage change
-    const parseChange = (changeStr: string): number => {
-      if (changeStr === 'N/A') return 0;
-      const cleaned = changeStr.replace(/[^\d.-]/g, '');
-      const change = parseFloat(cleaned);
-      return isNaN(change) ? 0 : change;
-    };
-    
-    return {
-      symbol: parsed.symbol || symbol,
-      risk: parsed.risk,
-      investmentPotential: parsed.potential,
-      overall: parsed.overall,
-      rationale: parsed.rationale || '',
-      // Include market data from tokenInfo if available
-      price: tokenInfo?.price ? parsePrice(tokenInfo.price) : 0,
-      volume: tokenInfo?.volume || 'N/A',
-      marketCap: tokenInfo?.mcap || 'N/A',
-      liquidity: tokenInfo?.liquidity || 'N/A',
-      change24h: tokenInfo?.['change-24h'] ? parseChange(tokenInfo['change-24h']) : 0,
-      age: tokenInfo?.age || 'N/A',
-      href: tokenInfo?.href || '#'
-    };
-  } catch (e: any) {
-    console.error(`IO.NET Intelligence API error for ${symbol}:`, e);
-    // Handle rate limiting and errors gracefully
-    if (e.status === 429 || e.code === 429) {
-      console.error(`Rate limit exceeded for ${symbol}. Check your IO.NET quota.`);
-      throw new Error('RATE_LIMIT_EXCEEDED');
-    }
-    return null;
   }
+
+  const initialCount = analysisResults.length;
+  const cleanedResults = analysisResults.filter(analysis => 
+    availableTokenSymbols.has(analysis.symbol)
+  );
+
+  if (cleanedResults.length < initialCount) {
+    console.log(`Removed ${initialCount - cleanedResults.length} tokens not in binance_tokens.json`);
+    writeSimplifiedResults(cleanedResults, OUTPUT_FILE);
+  }
+
+  return cleanedResults;
 }
 
-interface TokenAnalysis {
-  symbol: string;
-  risk: number;
-  investmentPotential: number;
-  overall: number;
-  rationale: string;
-  // Market data fields
-  price?: number;
-  volume?: string;
-  marketCap?: string;
-  liquidity?: string;
-  change24h?: number;
-  age?: string;
-  href?: string;
-}
-
-// Helper to write analysis results with best token on top
-function writeResultsWithBestToken(results: TokenAnalysis[], outputFile: string) {
-  if (!results.length) return;
-  // Find the best token by highest overall score
-  const best = results.reduce((a, b) => (b.overall > a.overall ? b : a));
-  // Prepare output object
-  const output = {
-    best_token: {
-      symbol: best.symbol,
-      overall: best.overall,
-      rationale: best.rationale
-    },
-    results
-  };
-  fs.writeFileSync(outputFile, JSON.stringify(output, null, 2));
-}
-
-// Helper function to update market data for existing analyses
-function updateMarketData(analysisResults: TokenAnalysis[], binanceTokens: any): TokenAnalysis[] {
-  console.log('Updating market data for existing analyses...');
+function updateMarketData(analysisResults: SimplifiedTokenAnalysis[], binanceTokens: any): SimplifiedTokenAnalysis[] {
+  console.log('Updating market data...');
   
   const parsePrice = (priceStr: string): number => {
     const cleaned = priceStr.replace(/,/g, '').replace(/[^\d.-]/g, '');
@@ -172,82 +330,105 @@ function updateMarketData(analysisResults: TokenAnalysis[], binanceTokens: any):
   };
   
   const parseChange = (changeStr: string): number => {
-    if (changeStr === 'N/A') return 0;
+    if (changeStr === 'N/A' || !changeStr) return 0;
     const cleaned = changeStr.replace(/[^\d.-]/g, '');
     const change = parseFloat(cleaned);
     return isNaN(change) ? 0 : change;
   };
 
-  let updatedCount = 0;
-  // Get set of valid symbols from binanceTokens
-  const validSymbols = new Set((binanceTokens?.tokens || []).map((t: any) => t.symbol));
-
-  // Filter out any analysis whose symbol is not in binance_tokens.json
-  const filteredResults = analysisResults.filter(analysis => validSymbols.has(analysis.symbol));
-
-  const updatedResults = filteredResults.map(analysis => {
+  const updatedResults = analysisResults.map(analysis => {
     const tokenInfo = getTokenInfo(analysis.symbol, binanceTokens);
     if (tokenInfo) {
-      console.log(`Updated market data for ${analysis.symbol}`);
-      updatedCount++;
+      const price = tokenInfo.price ? parsePrice(tokenInfo.price) : 0;
+      const change24h = tokenInfo['change-24h'] ? parseChange(tokenInfo['change-24h']) : 0;
+      
+      // Recalculate risk with updated data
+      const fundamentalRiskAdjustment = assessFundamentalRisk(
+        tokenInfo.liquidity || 'N/A',
+        tokenInfo.volume || 'N/A', 
+        tokenInfo.age || 'N/A',
+        change24h
+      );
+      const adjustedRisk = Math.min(10, Math.max(1, analysis.risk + fundamentalRiskAdjustment));
+      
       return {
         ...analysis,
-        price: tokenInfo.price ? parsePrice(tokenInfo.price) : analysis.price || 0,
-        volume: tokenInfo.volume || analysis.volume || 'N/A',
-        marketCap: tokenInfo.mcap || analysis.marketCap || 'N/A',
-        liquidity: tokenInfo.liquidity || analysis.liquidity || 'N/A',
-        change24h: tokenInfo['change-24h'] ? parseChange(tokenInfo['change-24h']) : analysis.change24h || 0,
-        age: tokenInfo.age || analysis.age || 'N/A',
-        href: tokenInfo.href || analysis.href || '#'
+        price,
+        volume: tokenInfo.volume || analysis.volume,
+        marketCap: tokenInfo.mcap || analysis.marketCap,
+        change24h,
+        age: tokenInfo.age || analysis.age,
+        href: tokenInfo.href || analysis.href,
+        risk: adjustedRisk,
+        lastAnalyzed: new Date().toISOString()
       };
     }
-    // Should never happen, but return null if not found
-    return null;
-  }).filter(Boolean) as TokenAnalysis[];
+    return analysis;
+  });
 
-  console.log(`Updated market data for ${updatedCount} out of ${filteredResults.length} tokens`);
   return updatedResults;
 }
 
 async function main() {
   let tweetsObj: any = {};
   let binanceTokens: any = {};
+  
+  // Load data files
   try {
     if (!fs.existsSync(TWEETS_FILE)) {
-      console.log('tweets.json not found. Nothing to analyze.');
+      console.log('tweets.json not found.');
       return;
     }
     tweetsObj = JSON.parse(fs.readFileSync(TWEETS_FILE, 'utf8'));
   } catch (e) {
-    console.error('Error reading or parsing tweets.json:', e);
+    console.error('Error reading tweets.json:', e);
     return;
   }
+  
   try {
     if (fs.existsSync(BINANCE_TOKENS)) {
       binanceTokens = JSON.parse(fs.readFileSync(BINANCE_TOKENS, 'utf8'));
+    } else {
+      console.log('binance_tokens.json not found.');
+      return;
     }
   } catch (e) {
-    console.error('Error reading or parsing binance_tokens.json:', e);
-    binanceTokens = {};
+    console.error('Error reading binance_tokens.json:', e);
+    return;
   }
 
-  let analysisResults: TokenAnalysis[] = [];
+  // Load existing results
+  let analysisResults: SimplifiedTokenAnalysis[] = [];
   try {
     if (fs.existsSync(OUTPUT_FILE)) {
-      // Read only the results array if best_token is present
       const fileContent = JSON.parse(fs.readFileSync(OUTPUT_FILE, 'utf8'));
       if (Array.isArray(fileContent)) {
         analysisResults = fileContent;
-      } else if (Array.isArray(fileContent.results)) {
-        analysisResults = fileContent.results;
+      } else if (Array.isArray(fileContent.data)) {
+        analysisResults = fileContent.data.map((item: any) => ({
+          symbol: item.symbol,
+          symbol1: item.symbol1 || '',
+          risk: item.risk,
+          investmentPotential: item.potential,
+          rationale: 'Existing analysis',
+          price: item.price,
+          volume: item.volume,
+          marketCap: item.marketCap,
+          change24h: item.change24h,
+          age: item.age,
+          href: item.href,
+          lastAnalyzed: new Date().toISOString()
+        }));
       }
     }
   } catch (e) {
-    console.error('Error reading or parsing ai_analyzer.json:', e);
+    console.error('Error reading existing results:', e);
     analysisResults = [];
   }
 
-  // Initialize last modified time for binance_tokens.json
+  // Cleanup and update
+  analysisResults = cleanupAnalysisResults(analysisResults, binanceTokens);
+
   try {
     if (fs.existsSync(BINANCE_TOKENS)) {
       const stats = fs.statSync(BINANCE_TOKENS);
@@ -257,73 +438,96 @@ async function main() {
     console.error('Error getting binance_tokens.json stats:', e);
   }
 
-  // Update market data for existing analyses
   if (analysisResults.length > 0) {
     analysisResults = updateMarketData(analysisResults, binanceTokens);
-    writeResultsWithBestToken(analysisResults, OUTPUT_FILE);
-    console.log(`Updated market data for ${analysisResults.length} existing analyses`);
+    writeSimplifiedResults(analysisResults, OUTPUT_FILE);
   }
 
-  // Create a queue of tokens to analyze (all tokens, every run)
-  const tokenQueue = Object.keys(tweetsObj);
-  console.log(`Total tokens to analyze: ${tokenQueue.length}`);
+  // Prepare token queue
+  const availableTokens = binanceTokens?.tokens ? 
+    new Set(binanceTokens.tokens.map((t: any) => t.symbol)) : 
+    new Set();
+  
+  const tokenQueue = Object.keys(tweetsObj).filter(symbol => availableTokens.has(symbol));
+  
+  console.log(`Simplified AI Analyzer Started`);
+  console.log(`Tokens to analyze: ${tokenQueue.length}`);
 
-  async function processAllTokensEvery24h() {
+  async function processTokensSimplified() {
     while (true) {
-      // Check if binance_tokens.json was updated
       if (checkBinanceTokensUpdated()) {
-        console.log('Detected binance_tokens.json update. Refreshing market data...');
+        console.log('Updating data...');
         try {
           const updatedBinanceTokens = JSON.parse(fs.readFileSync(BINANCE_TOKENS, 'utf8'));
+          analysisResults = cleanupAnalysisResults(analysisResults, updatedBinanceTokens);
           analysisResults = updateMarketData(analysisResults, updatedBinanceTokens);
-          writeResultsWithBestToken(analysisResults, OUTPUT_FILE);
-          console.log('Market data updated successfully');
+          writeSimplifiedResults(analysisResults, OUTPUT_FILE);
+          binanceTokens = updatedBinanceTokens;
         } catch (e) {
-          console.error('Error updating market data:', e);
+          console.error('Error updating data:', e);
         }
       }
 
-      for (let i = 0; i < tokenQueue.length; i++) {
-        const currentSymbol = tokenQueue[i];
+      const currentAvailableTokens = binanceTokens?.tokens ? 
+        new Set(binanceTokens.tokens.map((t: any) => t.symbol)) : 
+        new Set();
+      
+      const currentTokenQueue = Object.keys(tweetsObj).filter(symbol => 
+        currentAvailableTokens.has(symbol)
+      );
+
+      for (let i = 0; i < currentTokenQueue.length; i++) {
+        const currentSymbol = currentTokenQueue[i];
         try {
-          console.log(`Analyzing token ${i + 1}/${tokenQueue.length}: ${currentSymbol}`);
+          console.log(`[${i + 1}/${currentTokenQueue.length}] Analyzing ${currentSymbol}`);
+          
           const tweets = tweetsObj[currentSymbol]?.tweets || [];
           const tokenInfo = getTokenInfo(currentSymbol, binanceTokens);
-          const analysis = await analyzeTokenIOIntelligence(currentSymbol, tweets, tokenInfo);
-          if (analysis && analysis.rationale && analysis.rationale.trim() !== '' && analysis.risk !== -1) {
-            // Update or add analysis
+          
+          if (!tokenInfo) {
+            console.log(`${currentSymbol} not found. Skipping.`);
+            continue;
+          }
+          
+          const analysis = await analyzeTokenSimplified(currentSymbol, tweets, tokenInfo);
+          
+          if (analysis && analysis.rationale.trim()) {
             const existingIndex = analysisResults.findIndex(a => a.symbol === currentSymbol);
+            
             if (existingIndex >= 0) {
               analysisResults[existingIndex] = analysis;
-              console.log(`Updated analysis for ${currentSymbol}`);
+              console.log(`Updated ${currentSymbol} - Risk: ${analysis.risk}/10, Potential: ${analysis.investmentPotential}/10`);
             } else {
               analysisResults.push(analysis);
-              console.log(`Added new analysis for ${currentSymbol}`);
+              console.log(`Added ${currentSymbol} - Risk: ${analysis.risk}/10, Potential: ${analysis.investmentPotential}/10`);
             }
-            writeResultsWithBestToken(analysisResults, OUTPUT_FILE);
-          } else if (!analysis) {
-            console.warn(`Skipping ${currentSymbol}: Not a memecoin or no valid analysis returned.`);
+            
+            writeSimplifiedResults(analysisResults, OUTPUT_FILE);
+          } else {
+            console.log(`Skipped ${currentSymbol}: Invalid analysis`);
           }
         } catch (e: any) {
           if (e.message === 'RATE_LIMIT_EXCEEDED') {
-            console.log('Daily rate limit exceeded. Stopping analysis until quota resets.');
-            console.log('The analyzer will resume automatically when you restart it after quota reset.');
-            return; // Exit the function
+            console.log('Rate limit reached. Pausing.');
+            return;
           }
-          console.error(`Error analyzing token ${currentSymbol}:`, e);
+          console.error(`Error analyzing ${currentSymbol}:`, e.message);
         }
-        // Wait 5 seconds between requests
-        console.log(`Waiting 5 seconds before next analysis...`);
-        await new Promise(res => setTimeout(res, 5 * 1000));
+        
+        console.log('Waiting 5 seconds...');
+        await new Promise(res => setTimeout(res, 5000));
       }
-      // After all tokens are processed, wait 24 hours before next full analysis
-      console.log('Completed full analysis of all tokens. Waiting 24 hours before next run...');
+      
+      console.log('Analysis cycle complete. Next cycle in 24 hours.');
       await new Promise(res => setTimeout(res, 24 * 60 * 60 * 1000));
     }
   }
 
-  // Start the 24-hour analysis loop
-  await processAllTokensEvery24h();
+  await processTokensSimplified();
 }
+
+setInterval(() => {
+  main().catch(console.error);
+}, 10000);
 
 main().catch(console.error);
