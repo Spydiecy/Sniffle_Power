@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import ReactMarkdown from 'react-markdown';
 import { IoSendSharp } from 'react-icons/io5';
 import { FaDog, FaUser, FaMicrophone, FaMicrophoneSlash, FaVolumeUp, FaVolumeMute } from 'react-icons/fa';
 import Image from 'next/image';
@@ -329,10 +330,14 @@ export default function ChatInterface({ fullPage = false, windowMode = false }: 
                       : 'bg-white text-sniffle-dark border border-sniffle-brown/20'
                   }`}
                 >
-                  <p className="whitespace-pre-wrap">{msg.content}</p>
-                  <span className="text-xs opacity-75 mt-1 block">
-                    {formatTimestamp(msg.timestamp)}
-                  </span>
+                  {msg.type === 'assistant' ? (
+  <div className="prose prose-sm max-w-none whitespace-pre-wrap"><ReactMarkdown>{msg.content}</ReactMarkdown></div>
+) : (
+  <p className="whitespace-pre-wrap">{msg.content}</p>
+)}
+<span className="text-xs opacity-75 mt-1 block">
+  {formatTimestamp(msg.timestamp)}
+</span>
                 </div>
               </div>
             </div>

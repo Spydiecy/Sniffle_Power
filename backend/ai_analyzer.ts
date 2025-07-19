@@ -88,12 +88,12 @@ function assessFundamentalRisk(liquidity: string, volume: string, age: string, c
   else if (liquidityNum < 50000) riskAdjustment += 2;
   else if (liquidityNum < 100000) riskAdjustment += 1;
   
-  // Age risk
+  // Age risk (do NOT penalize for being new; only if extremely suspicious)
   const ageInSeconds = parseAge(age);
-  const ageInDays = ageInSeconds / 86400;
-  if (ageInDays < 1) riskAdjustment += 3;
-  else if (ageInDays < 7) riskAdjustment += 2;
-  else if (ageInDays < 30) riskAdjustment += 1;
+  if (ageInSeconds > 0 && ageInSeconds < 600) { // less than 10 minutes old
+    riskAdjustment += 3;
+  }
+  // Otherwise, do not add risk for age
   
   // Volatility risk
   const absChange = Math.abs(change24h);
@@ -241,35 +241,49 @@ function writeSimplifiedResults(results: SimplifiedTokenAnalysis[], outputFile: 
     return;
   }
   
-  // Transform to frontend-compatible format
-  const simplifiedResults = results.map((analysis, index) => ({
-    id: index + 1,
-    symbol: analysis.symbol,
-    symbol1: analysis.symbol1 || '',
-    price: analysis.price,
-    volume: analysis.volume,
-    marketCap: analysis.marketCap,
-    change24h: analysis.change24h,
-    age: analysis.age,
-    favorite: false, // Frontend will handle this
-    potential: analysis.investmentPotential,
-    risk: analysis.risk,
-    href: analysis.href
-  }));
+  // Normalize risk scores to be relative (lowest = 1, highest = 10)
+  let minRisk = Infinity, maxRisk = -Infinity;
+  results.forEach(a => {
+    if (a.risk < minRisk) minRisk = a.risk;
+    if (a.risk > maxRisk) maxRisk = a.risk;
+  });
+  const normalizedResults = results.map((analysis, index) => {
+    let risk = analysis.risk;
+    if (maxRisk > minRisk) {
+      risk = 1 + ((analysis.risk - minRisk) * 9) / (maxRisk - minRisk);
+      risk = Math.round(risk * 10) / 10; // round to 1 decimal
+    } else {
+      risk = 5; // fallback if all risks are the same
+    }
+    return {
+      id: index + 1,
+      symbol: analysis.symbol,
+      symbol1: analysis.symbol1 || '',
+      price: analysis.price,
+      volume: analysis.volume,
+      marketCap: analysis.marketCap,
+      change24h: analysis.change24h,
+      age: analysis.age,
+      favorite: false, // Frontend will handle this
+      potential: analysis.investmentPotential,
+      risk,
+      href: analysis.href
+    };
+  });
   
   // Sort by risk (lowest first), then by potential (highest first)
-  simplifiedResults.sort((a, b) => {
+  normalizedResults.sort((a, b) => {
     if (a.risk !== b.risk) return a.risk - b.risk;
     return b.potential - a.potential;
   });
   
   // Simple output structure
   const output = {
-    data: simplifiedResults
+    data: normalizedResults
   };
   
   fs.writeFileSync(outputFile, JSON.stringify(output, null, 2));
-  console.log(`Written ${simplifiedResults.length} simplified analyses`);
+  console.log(`Written ${normalizedResults.length} normalized analyses`);
 }
 
 // Utility functions

@@ -19,6 +19,26 @@ interface TokenDataResponse {
   data: TokenCoin[];
 }
 
+// New interface for AI analyzer simplified format
+interface AIAnalyzerToken {
+  id: number;
+  symbol: string;
+  symbol1: string;
+  price: number;
+  volume: string;
+  marketCap: string;
+  change24h: number;
+  age: string;
+  favorite: boolean;
+  potential: number;
+  risk: number;
+  href: string;
+}
+
+interface AIAnalyzerResponse {
+  data: AIAnalyzerToken[];
+}
+
 export interface FormattedMemecoin {
   id: number;
   symbol: string;
@@ -35,9 +55,15 @@ export interface FormattedMemecoin {
 }
 
 // Function to parse price strings, handling various formats
-const parsePrice = (priceStr: string): number => {
+const parsePrice = (priceStr: string | number): number => {
+  // If already a number, return it
+  if (typeof priceStr === 'number') return priceStr;
+  
+  // Handle string conversion
+  if (!priceStr || priceStr === 'N/A') return 0;
+  
   // Remove commas and any non-numeric characters except dots
-  const cleaned = priceStr.replace(/,/g, '').replace(/[^\d.-]/g, '');
+  const cleaned = String(priceStr).replace(/,/g, '').replace(/[^\d.-]/g, '');
   
   // Parse the cleaned string
   const price = parseFloat(cleaned);
@@ -47,11 +73,14 @@ const parsePrice = (priceStr: string): number => {
 };
 
 // Function to parse percentage change
-const parseChange = (changeStr: string): number => {
-  if (changeStr === 'N/A') return 0;
+const parseChange = (changeStr: string | number): number => {
+  // If already a number, return it
+  if (typeof changeStr === 'number') return changeStr;
+  
+  if (!changeStr || changeStr === 'N/A') return 0;
   
   // Extract the number and remove the % sign
-  const cleaned = changeStr.replace(/[^\d.-]/g, '');
+  const cleaned = String(changeStr).replace(/[^\d.-]/g, '');
   
   // Parse the cleaned string
   const change = parseFloat(cleaned);
@@ -61,7 +90,7 @@ const parseChange = (changeStr: string): number => {
 };
 
 // Function to determine risk score based on price volatility and other factors
-const calculateRisk = (price: number, changeStr: string): number => {
+const calculateRisk = (price: number, changeStr: string | number): number => {
   const change = parseChange(changeStr);
   // Higher volatility means higher risk
   const volatilityRisk = Math.min(Math.abs(change), 10);
@@ -72,7 +101,7 @@ const calculateRisk = (price: number, changeStr: string): number => {
 };
 
 // Function to determine potential score
-const calculatePotential = (price: number, changeStr: string): number => {
+const calculatePotential = (price: number, changeStr: string | number): number => {
   const change = parseChange(changeStr);
   // Coins with positive recent changes have higher potential
   const changePotential = change > 5 ? 8 : change > 0 ? 6 : 4;
@@ -83,11 +112,12 @@ const calculatePotential = (price: number, changeStr: string): number => {
 };
 
 // Helper function to parse price strings to numbers
-const parseNumericValue = (valueStr: string | undefined): number => {
+const parseNumericValue = (valueStr: string | number | undefined): number => {
+  if (typeof valueStr === 'number') return valueStr;
   if (!valueStr || valueStr === 'N/A') return 0;
   
   // Remove commas, currency symbols, and any non-numeric characters except dots
-  const cleaned = valueStr.replace(/,/g, '').replace(/[^\d.-]/g, '');
+  const cleaned = String(valueStr).replace(/,/g, '').replace(/[^\d.-]/g, '');
   
   // Parse the cleaned string
   const value = parseFloat(cleaned);
@@ -96,7 +126,29 @@ const parseNumericValue = (valueStr: string | undefined): number => {
   return isNaN(value) ? 0 : value;
 };
 
-const processTokenData = (data: any[]): FormattedMemecoin[] => {
+// Updated function to process AI analyzer format (simplified)
+const processAIAnalyzerData = (data: AIAnalyzerToken[]): FormattedMemecoin[] => {
+  return data.map((item) => {
+    // Data is already in the right format, just ensure types are correct
+    return {
+      id: item.id || 0,
+      symbol: item.symbol || '',
+      symbol1: item.symbol1 || '',
+      price: parsePrice(item.price),
+      volume: item.volume || 'N/A',
+      marketCap: item.marketCap || 'N/A',
+      change24h: parseChange(item.change24h),
+      age: item.age || 'N/A',
+      favorite: false, // Always start as false, frontend handles favorites
+      potential: item.potential || 1,
+      risk: item.risk || 10, // Default to high risk if not specified
+      href: item.href || '#'
+    };
+  });
+};
+
+// Legacy function to process old token format (kept for backward compatibility)
+const processLegacyTokenData = (data: any[]): FormattedMemecoin[] => {
   return data.map((item, index) => {
     // Helper function to ensure price is a number
     const ensureNumber = (value: any): number => {
@@ -119,22 +171,46 @@ const processTokenData = (data: any[]): FormattedMemecoin[] => {
       return 0;
     };
     
-    // Convert AI analysis format to memecoin format
+    // Handle legacy format - try to map old structure to new
+    const price = ensureNumber(item.price);
+    const change24h = ensureChangeNumber(item.change24h || item['change-24h']);
+    
     return {
       id: index + 1,
-      symbol: item.symbol,
+      symbol: item.symbol || '',
       symbol1: item.symbol1 || '',
-      price: ensureNumber(item.price),
-      volume: item.volume,
-      marketCap: item.marketCap,
-      change24h: ensureChangeNumber(item.change24h),
-      age: item.age,
+      price: price,
+      volume: item.volume || 'N/A',
+      marketCap: item.marketCap || item.mcap || 'N/A',
+      change24h: change24h,
+      age: item.age || 'N/A',
       favorite: false,
-      potential: item.investmentPotential,
-      risk: item.risk,
-      href: item.href
+      // Use AI scores if available, otherwise calculate
+      potential: item.investmentPotential || item.potential || calculatePotential(price, change24h),
+      risk: item.risk || calculateRisk(price, change24h),
+      href: item.href || '#'
     };
   });
+};
+
+// Smart processing function that detects format and processes accordingly
+const processTokenData = (data: any[]): FormattedMemecoin[] => {
+  if (!data || data.length === 0) return [];
+  
+  // Check if this looks like AI analyzer format (has id, potential, risk fields)
+  const firstItem = data[0];
+  const isAIFormat = firstItem && 
+    typeof firstItem.id === 'number' && 
+    typeof firstItem.potential === 'number' && 
+    typeof firstItem.risk === 'number';
+  
+  console.log('Detected format:', isAIFormat ? 'AI Analyzer' : 'Legacy');
+  
+  if (isAIFormat) {
+    return processAIAnalyzerData(data as AIAnalyzerToken[]);
+  } else {
+    return processLegacyTokenData(data);
+  }
 };
 
 export const fetchTokenData = async (forceRefresh: boolean = false): Promise<FormattedMemecoin[]> => {
@@ -165,14 +241,24 @@ export const fetchTokenData = async (forceRefresh: boolean = false): Promise<For
     }
     
     const raw = await response.json();
-    console.log('Raw response:', raw);
+    console.log('Raw response structure:', {
+      hasData: Array.isArray(raw.data),
+      hasResults: Array.isArray(raw.results),
+      dataLength: raw.data?.length || 0,
+      resultsLength: raw.results?.length || 0,
+      firstItem: raw.data?.[0] || raw.results?.[0] || 'none'
+    });
     
-    // Support both { data: [...] } and { results: [...] } formats
-    const tokens: any[] = Array.isArray(raw.data)
-      ? raw.data
-      : Array.isArray(raw.results)
-        ? raw.results
-        : [];
+    // Support multiple response formats
+    let tokens: any[] = [];
+    
+    if (Array.isArray(raw.data)) {
+      tokens = raw.data;
+    } else if (Array.isArray(raw.results)) {
+      tokens = raw.results;
+    } else if (Array.isArray(raw)) {
+      tokens = raw; // Direct array response
+    }
     
     console.log('Tokens found:', tokens.length);
     
@@ -183,6 +269,7 @@ export const fetchTokenData = async (forceRefresh: boolean = false): Promise<For
     
     const processed = processTokenData(tokens);
     console.log('Processed tokens:', processed.length);
+    console.log('Sample processed token:', processed[0]);
     
     return processed;
   } catch (error) {
@@ -212,4 +299,44 @@ export const invalidateTokenCache = async (): Promise<boolean> => {
     console.error('Failed to invalidate cache:', error);
     return false;
   }
+};
+
+// Utility function to validate token data format
+export const validateTokenData = (data: any[]): { isValid: boolean, format: string, errors: string[] } => {
+  const errors: string[] = [];
+  
+  if (!Array.isArray(data)) {
+    errors.push('Data is not an array');
+    return { isValid: false, format: 'unknown', errors };
+  }
+  
+  if (data.length === 0) {
+    return { isValid: true, format: 'empty', errors };
+  }
+  
+  const firstItem = data[0];
+  
+  // Check for AI analyzer format
+  if (firstItem.id !== undefined && firstItem.potential !== undefined && firstItem.risk !== undefined) {
+    const requiredFields = ['id', 'symbol', 'price', 'volume', 'marketCap', 'change24h', 'age', 'potential', 'risk', 'href'];
+    const missingFields = requiredFields.filter(field => firstItem[field] === undefined);
+    
+    if (missingFields.length > 0) {
+      errors.push(`Missing AI format fields: ${missingFields.join(', ')}`);
+    }
+    
+    return { 
+      isValid: missingFields.length === 0, 
+      format: 'AI Analyzer', 
+      errors 
+    };
+  }
+  
+  // Check for legacy format
+  if (firstItem.symbol !== undefined) {
+    return { isValid: true, format: 'Legacy', errors };
+  }
+  
+  errors.push('Unknown data format');
+  return { isValid: false, format: 'unknown', errors };
 };
