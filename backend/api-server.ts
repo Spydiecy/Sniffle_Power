@@ -120,7 +120,7 @@ app.get('/api/token-data', (req: Request, res: Response) => {
       rationale: token.rationale || `Risk: ${token.risk}/10, Potential: ${token.potential || token.investmentPotential}/10`
     }));
     
-    res.json({ data: transformedTokens });
+    res.json({ results: transformedTokens });
     
   } catch (err) {
     console.error('❌ Error parsing token data:', err);

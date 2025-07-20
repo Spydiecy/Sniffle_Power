@@ -29,7 +29,7 @@ export async function GET() {
     }
     
     const result = await response.json();
-    console.log('Backend data length:', result?.data?.length || 0);
+    console.log('Backend results length:', result?.results?.length || 0);
     
     return NextResponse.json(result, {
       headers: { 
@@ -47,7 +47,7 @@ export async function GET() {
     return NextResponse.json(
       { 
         error: 'Failed to proxy token data', 
-        data: [],
+        results: [],
         timestamp: Date.now()
       },
       { 
