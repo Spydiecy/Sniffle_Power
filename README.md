@@ -74,6 +74,36 @@ Our AI-powered system helps users:
 - **BNB Smart Chain analysis** - leverage specialized AI understanding of BSC's architecture for deeper insights.
 - **Free intelligence access** - unlimited access to all features without payment barriers.
 
+## How Memecoins Are Analyzed
+
+Sniffle uses a multi-stage, AI-powered process to analyze BNB Smart Chain memecoins:
+
+1. **Data Collection**
+   - Scrapes fresh token data (price, volume, liquidity, age, market cap, etc.) from the BNB Smart Chain.
+   - Gathers recent tweets and social sentiment for each token.
+
+2. **Risk Factor Calculation**
+   - Calculates several risk factors for each token:
+     - **Liquidity Risk:** Low liquidity increases risk.
+     - **Volatility Risk:** Extreme price swings are riskier.
+     - **Age Risk:** Newer tokens are generally riskier.
+     - **Volume Risk:** Low trading volume signals higher risk.
+   - Each factor is scored (0–5), then summed for a total raw risk score.
+
+3. **Normalization & Peer Comparison**
+   - Risk scores are normalized relative to all analyzed memecoins, ensuring meaningful comparisons.
+   - Investment potential is also rated based on multiple signals.
+
+4. **Output & Filtering**
+   - Each token receives a final risk score (0–10), an investment potential score, and a rationale.
+   - Only tokens with complete data are included in recommendations.
+
+5. **Database & Recommendations**
+   - Analysis results are stored and updated regularly.
+   - The AI only provides recommendations for tokens in its analyzed memecoin database.
+
+This process ensures transparent, explainable, and up-to-date analysis for BNB Smart Chain memecoins, helping users make informed decisions.
+
 ## AI Analysis Pipeline
 
 ```mermaid

@@ -1,3 +1,4 @@
+// Updated interfaces to match AI analyzer output
 interface TokenCoin {
   name: string;
   symbol: string;
@@ -19,20 +20,22 @@ interface TokenDataResponse {
   data: TokenCoin[];
 }
 
-// New interface for AI analyzer simplified format
+// Updated AI analyzer token interface to match actual output
 interface AIAnalyzerToken {
   id: number;
   symbol: string;
   symbol1: string;
-  price: number;
+  price: number;                    // AI analyzer outputs number
   volume: string;
   marketCap: string;
-  change24h: number;
+  change24h: number;                // AI analyzer outputs number
   age: string;
   favorite: boolean;
-  potential: number;
+  potential: number;                // AI analyzer uses 'potential', not 'investmentPotential'
+  investmentPotential?: number;     // API server adds this for compatibility
   risk: number;
   href: string;
+  rationale?: string;               // API server might add this
 }
 
 interface AIAnalyzerResponse {
@@ -60,9 +63,9 @@ const parsePrice = (priceStr: string | number): number => {
   if (typeof priceStr === 'number') return priceStr;
   
   // Handle string conversion
-  if (!priceStr || priceStr === 'N/A') return 0;
+  if (!priceStr || priceStr === 'N/A' || priceStr === '') return 0;
   
-  // Remove commas and any non-numeric characters except dots
+  // Remove commas and any non-numeric characters except dots and minus
   const cleaned = String(priceStr).replace(/,/g, '').replace(/[^\d.-]/g, '');
   
   // Parse the cleaned string
@@ -77,9 +80,9 @@ const parseChange = (changeStr: string | number): number => {
   // If already a number, return it
   if (typeof changeStr === 'number') return changeStr;
   
-  if (!changeStr || changeStr === 'N/A') return 0;
+  if (!changeStr || changeStr === 'N/A' || changeStr === '') return 0;
   
-  // Extract the number and remove the % sign
+  // Extract the number and remove the % sign and other characters
   const cleaned = String(changeStr).replace(/[^\d.-]/g, '');
   
   // Parse the cleaned string
@@ -89,59 +92,45 @@ const parseChange = (changeStr: string | number): number => {
   return isNaN(change) ? 0 : change;
 };
 
-// Function to determine risk score based on price volatility and other factors
+// Function to determine risk score based on price volatility and other factors (fallback)
 const calculateRisk = (price: number, changeStr: string | number): number => {
   const change = parseChange(changeStr);
   // Higher volatility means higher risk
-  const volatilityRisk = Math.min(Math.abs(change), 10);
+  const volatilityRisk = Math.min(Math.abs(change) / 20, 10); // Scale volatility
   // Very low-priced coins are generally riskier
-  const priceRisk = price < 0.001 ? 8 : price < 0.01 ? 6 : price < 0.1 ? 5 : 3;
+  const priceRisk = price < 0.000001 ? 9 : price < 0.00001 ? 8 : price < 0.0001 ? 7 : price < 0.001 ? 6 : price < 0.01 ? 5 : 3;
   // Return weighted average
-  return Math.min(Math.round((volatilityRisk * 0.6 + priceRisk * 0.4)), 10);
+  return Math.min(Math.round((volatilityRisk * 0.4 + priceRisk * 0.6)), 10);
 };
 
-// Function to determine potential score
+// Function to determine potential score (fallback)
 const calculatePotential = (price: number, changeStr: string | number): number => {
   const change = parseChange(changeStr);
   // Coins with positive recent changes have higher potential
-  const changePotential = change > 5 ? 8 : change > 0 ? 6 : 4;
+  const changePotential = change > 50 ? 9 : change > 20 ? 8 : change > 10 ? 7 : change > 5 ? 6 : change > 0 ? 5 : 3;
   // Low-priced coins have higher potential for big percentage moves
-  const pricePotential = price < 0.001 ? 9 : price < 0.01 ? 7 : price < 0.1 ? 6 : 5;
+  const pricePotential = price < 0.000001 ? 9 : price < 0.00001 ? 8 : price < 0.0001 ? 7 : price < 0.001 ? 6 : price < 0.01 ? 5 : 4;
   // Return weighted average
-  return Math.min(Math.round((changePotential * 0.5 + pricePotential * 0.5)), 10);
+  return Math.min(Math.round((changePotential * 0.3 + pricePotential * 0.7)), 10);
 };
 
-// Helper function to parse price strings to numbers
-const parseNumericValue = (valueStr: string | number | undefined): number => {
-  if (typeof valueStr === 'number') return valueStr;
-  if (!valueStr || valueStr === 'N/A') return 0;
-  
-  // Remove commas, currency symbols, and any non-numeric characters except dots
-  const cleaned = String(valueStr).replace(/,/g, '').replace(/[^\d.-]/g, '');
-  
-  // Parse the cleaned string
-  const value = parseFloat(cleaned);
-  
-  // If parsing fails or results in NaN, return 0
-  return isNaN(value) ? 0 : value;
-};
-
-// Updated function to process AI analyzer format (simplified)
+// Updated function to process AI analyzer format
 const processAIAnalyzerData = (data: AIAnalyzerToken[]): FormattedMemecoin[] => {
-  return data.map((item) => {
-    // Data is already in the right format, just ensure types are correct
+  return data.map((item, index) => {
+    // Ensure all required fields are present and properly typed
     return {
-      id: item.id || 0,
+      id: item.id || (index + 1),
       symbol: item.symbol || '',
       symbol1: item.symbol1 || '',
-      price: parsePrice(item.price),
+      price: parsePrice(item.price), // Handle both number and string inputs
       volume: item.volume || 'N/A',
       marketCap: item.marketCap || 'N/A',
-      change24h: parseChange(item.change24h),
+      change24h: parseChange(item.change24h), // Handle both number and string inputs
       age: item.age || 'N/A',
       favorite: false, // Always start as false, frontend handles favorites
-      potential: item.potential || 1,
-      risk: item.risk || 10, // Default to high risk if not specified
+      // Prefer 'potential' field, fallback to 'investmentPotential' or calculate
+      potential: item.potential || item.investmentPotential || calculatePotential(parsePrice(item.price), item.change24h),
+      risk: item.risk || calculateRisk(parsePrice(item.price), item.change24h), // Use AI risk or calculate fallback
       href: item.href || '#'
     };
   });
@@ -197,14 +186,22 @@ const processLegacyTokenData = (data: any[]): FormattedMemecoin[] => {
 const processTokenData = (data: any[]): FormattedMemecoin[] => {
   if (!data || data.length === 0) return [];
   
-  // Check if this looks like AI analyzer format (has id, potential, risk fields)
+  console.log('Processing token data:', { 
+    length: data.length, 
+    firstItem: data[0] ? Object.keys(data[0]) : 'none'
+  });
+  
+  // Check if this looks like AI analyzer format
   const firstItem = data[0];
-  const isAIFormat = firstItem && 
-    typeof firstItem.id === 'number' && 
-    typeof firstItem.potential === 'number' && 
-    typeof firstItem.risk === 'number';
+  
+  // More robust detection - check for AI analyzer specific fields
+  const isAIFormat = firstItem && (
+    (typeof firstItem.id === 'number' && typeof firstItem.risk === 'number' && typeof firstItem.potential === 'number') ||
+    (firstItem.hasOwnProperty('risk') && firstItem.hasOwnProperty('potential'))
+  );
   
   console.log('Detected format:', isAIFormat ? 'AI Analyzer' : 'Legacy');
+  console.log('Sample item:', firstItem);
   
   if (isAIFormat) {
     return processAIAnalyzerData(data as AIAnalyzerToken[]);
@@ -213,15 +210,16 @@ const processTokenData = (data: any[]): FormattedMemecoin[] => {
   }
 };
 
+// Updated fetch function with better error handling and debugging
 export const fetchTokenData = async (forceRefresh: boolean = false): Promise<FormattedMemecoin[]> => {
   try {
-    console.log('Fetching token data at:', new Date().toISOString());
+    console.log('🔄 Fetching token data at:', new Date().toISOString());
     
     // More aggressive cache busting
     const cacheBuster = `_=${Date.now()}&r=${Math.random()}${forceRefresh ? '&force=1' : ''}`;
     const url = `/api/token-data?${cacheBuster}`;
     
-    console.log('Fetch URL:', url);
+    console.log('📡 Fetch URL:', url);
     
     const response = await fetch(url, { 
       cache: 'no-store',
@@ -232,48 +230,86 @@ export const fetchTokenData = async (forceRefresh: boolean = false): Promise<For
       }
     });
     
-    console.log('Response status:', response.status);
-    console.log('Response headers:', Object.fromEntries(response.headers.entries()));
+    console.log('📊 Response status:', response.status);
     
     if (!response.ok) {
-      console.warn('API request failed, using fallback data');
+      console.error('❌ API request failed:', response.status, response.statusText);
+      
+      // Try to get error details
+      try {
+        const errorData = await response.json();
+        console.error('❌ Error details:', errorData);
+      } catch (e) {
+        console.error('❌ Could not parse error response');
+      }
+      
       return [];
     }
     
     const raw = await response.json();
-    console.log('Raw response structure:', {
+    console.log('📄 Raw response structure:', {
+      topLevelKeys: Object.keys(raw),
       hasData: Array.isArray(raw.data),
       hasResults: Array.isArray(raw.results),
       dataLength: raw.data?.length || 0,
       resultsLength: raw.results?.length || 0,
-      firstItem: raw.data?.[0] || raw.results?.[0] || 'none'
     });
+    
+    // Log first item for debugging
+    const firstItem = raw.data?.[0] || raw.results?.[0];
+    if (firstItem) {
+      console.log('📋 First item structure:', {
+        keys: Object.keys(firstItem),
+        sample: {
+          symbol: firstItem.symbol,
+          price: firstItem.price,
+          risk: firstItem.risk,
+          potential: firstItem.potential,
+          investmentPotential: firstItem.investmentPotential
+        }
+      });
+    }
     
     // Support multiple response formats
     let tokens: any[] = [];
     
     if (Array.isArray(raw.data)) {
       tokens = raw.data;
+      console.log('✅ Using raw.data array');
     } else if (Array.isArray(raw.results)) {
       tokens = raw.results;
+      console.log('✅ Using raw.results array');
     } else if (Array.isArray(raw)) {
       tokens = raw; // Direct array response
+      console.log('✅ Using direct array response');
+    } else {
+      console.error('❌ No valid token array found in response');
+      console.error('Response structure:', raw);
+      return [];
     }
     
-    console.log('Tokens found:', tokens.length);
+    console.log(`📈 Tokens found: ${tokens.length}`);
     
     if (!tokens.length) {
-      console.warn('No token data found in API response');
+      console.warn('⚠️ No token data found in API response');
       return [];
     }
     
     const processed = processTokenData(tokens);
-    console.log('Processed tokens:', processed.length);
-    console.log('Sample processed token:', processed[0]);
+    console.log(`✅ Processed tokens: ${processed.length}`);
+    
+    if (processed.length > 0) {
+      console.log('📊 Sample processed token:', {
+        symbol: processed[0].symbol,
+        price: processed[0].price,
+        risk: processed[0].risk,
+        potential: processed[0].potential
+      });
+    }
     
     return processed;
   } catch (error) {
-    console.error('Error fetching Token data:', error);
+    console.error('💥 Error fetching token data:', error);
     return [];
   }
 };
@@ -293,10 +329,10 @@ export const invalidateTokenCache = async (): Promise<boolean> => {
     }
     
     const result = await response.json();
-    console.log('Cache invalidation result:', result);
+    console.log('✅ Cache invalidation result:', result);
     return true;
   } catch (error) {
-    console.error('Failed to invalidate cache:', error);
+    console.error('❌ Failed to invalidate cache:', error);
     return false;
   }
 };
@@ -317,16 +353,21 @@ export const validateTokenData = (data: any[]): { isValid: boolean, format: stri
   const firstItem = data[0];
   
   // Check for AI analyzer format
-  if (firstItem.id !== undefined && firstItem.potential !== undefined && firstItem.risk !== undefined) {
-    const requiredFields = ['id', 'symbol', 'price', 'volume', 'marketCap', 'change24h', 'age', 'potential', 'risk', 'href'];
+  if (firstItem.risk !== undefined && firstItem.potential !== undefined) {
+    const requiredFields = ['symbol', 'price', 'volume', 'marketCap', 'change24h', 'age', 'potential', 'risk', 'href'];
     const missingFields = requiredFields.filter(field => firstItem[field] === undefined);
     
     if (missingFields.length > 0) {
       errors.push(`Missing AI format fields: ${missingFields.join(', ')}`);
     }
     
+    // Check data types
+    if (typeof firstItem.risk !== 'number') errors.push('risk should be a number');
+    if (typeof firstItem.potential !== 'number') errors.push('potential should be a number');
+    if (typeof firstItem.price !== 'number' && typeof firstItem.price !== 'string') errors.push('price should be a number or string');
+    
     return { 
-      isValid: missingFields.length === 0, 
+      isValid: missingFields.length === 0 && errors.length === 0, 
       format: 'AI Analyzer', 
       errors 
     };
@@ -337,6 +378,31 @@ export const validateTokenData = (data: any[]): { isValid: boolean, format: stri
     return { isValid: true, format: 'Legacy', errors };
   }
   
-  errors.push('Unknown data format');
+  errors.push('Unknown data format - missing required fields');
   return { isValid: false, format: 'unknown', errors };
+};
+
+// Helper function to check if data looks like it's from AI analyzer
+export const isAIAnalyzerFormat = (data: any[]): boolean => {
+  if (!data || data.length === 0) return false;
+  const firstItem = data[0];
+  return !!(firstItem.risk !== undefined && firstItem.potential !== undefined);
+};
+
+// Debug function to log data structure
+export const debugTokenData = (data: any): void => {
+  console.group('🔍 Token Data Debug');
+  console.log('Data type:', typeof data);
+  console.log('Is array:', Array.isArray(data));
+  
+  if (Array.isArray(data) && data.length > 0) {
+    console.log('Length:', data.length);
+    console.log('First item keys:', Object.keys(data[0]));
+    console.log('First item:', data[0]);
+    
+    const validation = validateTokenData(data);
+    console.log('Validation:', validation);
+  }
+  
+  console.groupEnd();
 };
