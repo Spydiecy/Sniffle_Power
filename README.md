@@ -2,18 +2,6 @@
 
 **The definitive AI-powered memecoin intelligence platform for BNB Smart Chain, featuring advanced voice interaction, real-time BEP-20 analysis, and professional-grade trading insights delivered through hands-free operation.**
 
-## 🏆 FAIR3 Fairness Hackathon Submission
-
-Sniffle is submitted to the **FAIR3 Fairness Hackathon** competing in multiple tracks:
-
-### 🎯 **Tech Fairness Exploration Awards**
-**How Sniffle Addresses Tech Fairness:**
-- **Algorithm Transparency**: Open-source AI analysis with explainable risk scoring for BEP-20 tokens
-- **Data Sovereignty**: Users maintain control over their wallet data and trading preferences
-- **Sustainable Income in AI Era**: Democratizes professional-grade trading intelligence, previously exclusive to institutional players
-- **Anti-Platform Design**: Completely free platform that doesn't extract value from users
-- **Human-Centered AI**: Voice-first interface makes AI accessible to all users, regardless of technical expertise
-
 ### 🔗 **BNB Chain Integration Awards**
 **Deep BNB Chain Integration:**
 - **Native BEP-20 Token Analysis**: Built specifically for BNB Smart Chain ecosystem
@@ -697,5 +685,6 @@ graph TD
 - Open-source governance model
 - Community-driven development
 - Transparent roadmap and evolution
+
 
 ---
